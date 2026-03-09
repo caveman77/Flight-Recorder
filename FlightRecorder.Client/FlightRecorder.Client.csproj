@@ -15,10 +15,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="C:\MSFS SDK\SimConnect SDK\lib\SimConnect.dll" Link="SimConnect.dll">
+    <None Include="C:\MSFS 2024 SDK\SimConnect SDK\lib\SimConnect.dll" Link="SimConnect.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-	  <None Include="C:\MSFS SDK\SimConnect SDK\lib\SimConnect.lib" Link="SimConnect.lib">
+	  <None Include="C:\MSFS 2024 SDK\SimConnect SDK\lib\SimConnect.lib" Link="SimConnect.lib">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
   </ItemGroup>
