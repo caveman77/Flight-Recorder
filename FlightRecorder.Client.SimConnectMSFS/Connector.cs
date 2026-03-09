@@ -1,6 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System;
+using System.Threading;
+using Microsoft.Extensions.Logging;
 using Microsoft.FlightSimulator.SimConnect;
-using System;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FlightRecorder.Client.SimConnectMSFS;
 
@@ -23,8 +25,33 @@ public partial class Connector : IConnector
 
     private int requestCount = 0;
 
+    private Timer timer;
+
+    public void StartTimer()
+    {
+        timer = new Timer(TimerCallback, null, 0, 60000);
+    }
+
+    public void TimerCallback(object state)
+    {
+        logger.LogError("SimConnect TimerCallback - ");
+
+        logger.LogError("SimConnect CHU RequestDataOnSimObjectType");
+        uint radius = 1000;  // in meters
+        simconnect?.RequestDataOnSimObjectType(
+            DATA_REQUESTS.CHU_LISTAIRCRAFT, DEFINITIONS.SimState, radius, SIMCONNECT_SIMOBJECT_TYPE.AIRCRAFT);
+    }
+
+    public void DisposeTime()
+    {
+        timer.Dispose();
+    }
+
     public Connector(ILogger<Connector> logger)
     {
+        // CHU
+        logger.LogError("SimConnect CHU Connector");
+
         logger.LogDebug("Creating instance of {class}", nameof(Connector));
         this.logger = logger;
     }
@@ -40,6 +67,10 @@ public partial class Connector : IConnector
         simconnect.OnRecvException += Simconnect_OnRecvException;
         simconnect.OnRecvEvent += Simconnect_OnRecvEvent;
         simconnect.OnRecvSimobjectData += Simconnect_OnRecvSimobjectData;
+
+        // CHU
+        simconnect.OnRecvSimobjectDataBytype += new SimConnect.RecvSimobjectDataBytypeEventHandler(simconnect_OnRecvSimobjectDataBytype);
+
         RegisterSimStateDefinition();
         RegisterAircraftPositionDefinition();
         RegisterAircraftPositionSetDefinition();
@@ -60,6 +91,7 @@ public partial class Connector : IConnector
 
         IsInitialized = true;
         Initialized?.Invoke(this, new());
+
     }
 
     public void Freeze(uint aircraftId)
@@ -171,7 +203,13 @@ public partial class Connector : IConnector
             SIMCONNECT_PERIOD.SIM_FRAME,
             SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT,
             0, 0, 0);
+
+        // CHU
+        StartTimer();
     }
+
+
+
 
     private void Simconnect_OnRecvAssignedObjectId(SimConnect sender, SIMCONNECT_RECV_ASSIGNED_OBJECT_ID data)
     {
@@ -276,6 +314,53 @@ public partial class Connector : IConnector
                         ProcessAircraftPosition(position.Value);
                     }
                 }
+                break;
+            default:
+                {
+                    logger.LogError("SimConnect CHU CHU_AI_POSITION");
+
+                    var position = data.dwData[0] as AircraftPositionStruct?;
+                    if (position.HasValue)
+                    {
+                        AircraftPositionStruct toto = (AircraftPositionStruct)position.Value;
+                        logger.LogError("SimConnect CHU CHU_AI_POSITION - aircraft [{i}]: {TrueHeading} {TrueAirspeed}", data.dwObjectID, toto.TrueHeading, toto.TrueAirspeed);
+                    }
+
+                }
+                break;
+        }
+    }
+
+    // CHU
+    void simconnect_OnRecvSimobjectDataBytype(SimConnect sender, SIMCONNECT_RECV_SIMOBJECT_DATA_BYTYPE data)
+    {
+
+        switch ((DATA_REQUESTS)data.dwRequestID)
+        {
+            case DATA_REQUESTS.CHU_LISTAIRCRAFT:
+                logger.LogError("SimConnect CHU CHU_LISTAIRCRAFT 2 {length} objectID:{dwObjectID}", data.dwData.Length, data.dwObjectID);
+
+                for (int i = 0;i < data.dwData.Length;i++)
+                {
+                    var position = data.dwData[i] as SimStateStruct?;
+                    if (position != null)
+                    {
+                        SimStateStruct toto = (SimStateStruct)position;
+                        logger.LogError("SimConnect CHU CHU_LISTAIRCRAFT - aircraft [{i}]: {AircraftNumber} {AircraftModel} {AircraftType} {AircraftTitle}", i, toto.AircraftNumber, toto.AircraftModel, toto.AircraftType, toto.AircraftTitle);
+
+                        simconnect?.RequestDataOnSimObject(
+                            (DATA_REQUESTS) data.dwObjectID, DEFINITIONS.AircraftPosition, data.dwObjectID,
+                            SIMCONNECT_PERIOD.SIM_FRAME,
+                            SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT,
+                            0, 0, 25*60);
+                    }
+
+
+                }
+                break;
+
+            default:
+                logger.LogError("Unknown request ID: " + data.dwRequestID);
                 break;
         }
     }
