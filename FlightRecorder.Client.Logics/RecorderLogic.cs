@@ -17,7 +17,8 @@ public class RecorderLogic : IRecorderLogic, IDisposable
     private long? startMilliseconds;
     private long? endMilliseconds;
     private SimStateStruct startState;
-    private List<(long milliseconds, AircraftPositionStruct position)> records = new();
+    private List<(long milliseconds, uint dwObjectID, AircraftPositionStruct position)> records = new();
+    private List<(long milliseconds, uint dwObjectID, SimStateStruct position)> sorrounding_records = new();
 
 
     private SimStateStruct simState;
@@ -32,6 +33,7 @@ public class RecorderLogic : IRecorderLogic, IDisposable
         this.connector = connector;
 
         connector.SimStateUpdated += Connector_SimStateUpdated;
+        connector.SorroundingAircraftUpdate += Connector_SimSouroundingAircraft;
     }
 
     public void Dispose()
@@ -46,12 +48,23 @@ public class RecorderLogic : IRecorderLogic, IDisposable
         if (disposing)
         {
             connector.SimStateUpdated -= Connector_SimStateUpdated;
+            connector.SorroundingAircraftUpdate -= Connector_SimSouroundingAircraft;
         }
     }
 
     private void Connector_SimStateUpdated(object? sender, SimStateUpdatedEventArgs e)
     {
         simState = e.State;
+    }
+
+    private void Connector_SimSouroundingAircraft(object? sender, SimStateUpdatedEventArgs e)
+    {
+        if (IsStarted && !IsEnded)
+        {
+            logger.LogError("RecorderLogic - Connector_SimSouroundingAircraft CHU CHU_LISTAIRCRAFT - aircraft: {AircraftNumber} {AircraftModel} {AircraftType} {AircraftTitle}", e.State.AircraftNumber, e.State.AircraftModel, e.State.AircraftType, e.State.AircraftTitle);
+            sorrounding_records.Add((stopwatch.ElapsedMilliseconds, e.dwObjectID, e.State));
+        }
+
     }
 
     #region Public Functions
@@ -70,7 +83,8 @@ public class RecorderLogic : IRecorderLogic, IDisposable
         startMilliseconds = stopwatch.ElapsedMilliseconds;
         endMilliseconds = null;
         startState = simState;
-        records = new List<(long milliseconds, AircraftPositionStruct position)>();
+        records = new List<(long milliseconds, uint dwObjectID, AircraftPositionStruct position)>();
+        sorrounding_records = new List<(long milliseconds, uint dwObjectID, SimStateStruct position)>();
     }
 
     public void StopRecording()
@@ -82,21 +96,25 @@ public class RecorderLogic : IRecorderLogic, IDisposable
         }
     }
 
-    public void NotifyPosition(AircraftPositionStruct? value)
+    public void NotifyPosition(uint dwObjectID, AircraftPositionStruct? value)
     {
         if (IsStarted && !IsEnded && value.HasValue)
         {
-            records.Add((stopwatch.ElapsedMilliseconds, value.Value));
+            records.Add((stopwatch.ElapsedMilliseconds, dwObjectID, value.Value));
+
+            // To be done: Filtering here to send information about the user aircraft
             RecordsUpdated?.Invoke(this, new(null, startState.AircraftTitle, records.Count));
         }
     }
 
+    
+    // A lot of work here to be done
     public SavedData ToData(string clientVersion)
     {
         if (startMilliseconds == null) throw new InvalidOperationException("Cannot get data before started recording!");
         if (endMilliseconds == null) throw new InvalidOperationException("Cannot get data before finished recording!");
         return new(clientVersion, startMilliseconds.Value, endMilliseconds.Value, startState, records);
     }
-
+    
     #endregion
 }

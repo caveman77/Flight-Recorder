@@ -10,6 +10,7 @@ public interface IConnector
     event EventHandler<AircraftPositionUpdatedEventArgs> AircraftPositionUpdated;
     event EventHandler Closed;
     event EventHandler<AircraftIdReceivedEventArgs> AircraftIdReceived;
+    event EventHandler<SimStateUpdatedEventArgs> SorroundingAircraftUpdate;
     event EventHandler Frame;
     event EventHandler Initialized;
     event EventHandler CreatingObjectFailed;

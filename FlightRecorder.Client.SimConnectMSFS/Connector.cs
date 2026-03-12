@@ -14,6 +14,7 @@ public partial class Connector : IConnector
 
     public event EventHandler<SimStateUpdatedEventArgs>? SimStateUpdated;
     public event EventHandler<AircraftPositionUpdatedEventArgs>? AircraftPositionUpdated;
+    public event EventHandler<SimStateUpdatedEventArgs> SorroundingAircraftUpdate;      // Sending event around sourrounding aircraft
     public event EventHandler? Initialized;
     public event EventHandler? Frame;
     public event EventHandler? CreatingObjectFailed;
@@ -178,16 +179,22 @@ public partial class Connector : IConnector
         }
     }
 
-    private void ProcessSimState(SimStateStruct state)
+    private void ProcessSimState(uint dwObjectID, SimStateStruct state)
     {
         logger.LogTrace("Get SimState");
-        SimStateUpdated?.Invoke(this, new SimStateUpdatedEventArgs(state));
+        SimStateUpdated?.Invoke(this, new SimStateUpdatedEventArgs(dwObjectID, state));
     }
 
-    private void ProcessAircraftPosition(AircraftPositionStruct position)
+    private void ProcessAircraftPosition(uint dwObjectID, AircraftPositionStruct position)
     {
         logger.LogTrace("Get Aircraft status");
-        AircraftPositionUpdated?.Invoke(this, new AircraftPositionUpdatedEventArgs(position));
+        AircraftPositionUpdated?.Invoke(this, new AircraftPositionUpdatedEventArgs(dwObjectID, position));
+    }
+
+    private void ProcessSourroundingAircraft(uint dwObjectID, SimStateStruct position)
+    {
+        logger.LogTrace("Get aircraft next to user one ");
+        SorroundingAircraftUpdate?.Invoke(this, new SimStateUpdatedEventArgs(dwObjectID, position));
     }
 
     private void RequestDataOnConnected()
@@ -302,7 +309,7 @@ public partial class Connector : IConnector
                     var state = data.dwData[0] as SimStateStruct?;
                     if (state.HasValue)
                     {
-                        ProcessSimState(state.Value);
+                        ProcessSimState(data.dwObjectID, state.Value);
                     }
                 }
                 break;
@@ -311,19 +318,20 @@ public partial class Connector : IConnector
                     var position = data.dwData[0] as AircraftPositionStruct?;
                     if (position.HasValue)
                     {
-                        ProcessAircraftPosition(position.Value);
+                        ProcessAircraftPosition(data.dwObjectID, position.Value);
                     }
                 }
                 break;
             default:
                 {
-                    logger.LogError("SimConnect CHU CHU_AI_POSITION");
+                    logger.LogTrace("SimConnect CHU CHU_AI_POSITION");
 
                     var position = data.dwData[0] as AircraftPositionStruct?;
                     if (position.HasValue)
                     {
                         AircraftPositionStruct toto = (AircraftPositionStruct)position.Value;
-                        logger.LogError("SimConnect CHU CHU_AI_POSITION - aircraft [{i}]: {TrueHeading} {TrueAirspeed}", data.dwObjectID, toto.TrueHeading, toto.TrueAirspeed);
+                        logger.LogTrace("SimConnect CHU CHU_AI_POSITION - aircraft [{i}]: {TrueHeading} {TrueAirspeed}", data.dwObjectID, toto.TrueHeading, toto.TrueAirspeed);
+                        ProcessAircraftPosition(data.dwObjectID, position.Value);
                     }
 
                 }
@@ -347,7 +355,9 @@ public partial class Connector : IConnector
                     {
                         SimStateStruct toto = (SimStateStruct)position;
                         logger.LogError("SimConnect CHU CHU_LISTAIRCRAFT - aircraft [{i}]: {AircraftNumber} {AircraftModel} {AircraftType} {AircraftTitle}", i, toto.AircraftNumber, toto.AircraftModel, toto.AircraftType, toto.AircraftTitle);
+                        ProcessSourroundingAircraft(data.dwObjectID, toto);
 
+                        // Requesting position for a new set of frame. 
                         simconnect?.RequestDataOnSimObject(
                             (DATA_REQUESTS) data.dwObjectID, DEFINITIONS.AircraftPosition, data.dwObjectID,
                             SIMCONNECT_PERIOD.SIM_FRAME,

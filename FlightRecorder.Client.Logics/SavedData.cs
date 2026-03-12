@@ -6,6 +6,10 @@ namespace FlightRecorder.Client.Logics;
 
 public class SavedData
 {
+    public SavedData(string clientVersion, long startTime, long endTime, SimStateStruct? simState, List<(long milliseconds, uint dwObject, AircraftPositionStruct position)> records)
+    {
+
+    }
 
     public SavedData(string clientVersion, long startTime, long endTime, SimStateStruct? simState, List<(long milliseconds, AircraftPositionStruct position)> records)
     {

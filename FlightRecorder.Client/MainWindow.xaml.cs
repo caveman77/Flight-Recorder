@@ -128,8 +128,10 @@ public partial class MainWindow : BaseWindow
 
     private void Connector_AircraftPositionUpdated(object? sender, AircraftPositionUpdatedEventArgs e)
     {
-        recorderLogic.NotifyPosition(e.Position);
-        replayLogic.NotifyPosition(e.Position);
+        recorderLogic.NotifyPosition(e.dwObjectID, e.Position);
+
+        // replayLogic will be engaged upon replay after re-ordering aircraft / frames
+        //replayLogic.NotifyPosition(e.Position);
 
         Dispatcher.Invoke(() =>
         {
