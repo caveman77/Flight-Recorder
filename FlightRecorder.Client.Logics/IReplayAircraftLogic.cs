@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using FlightRecorder.Client.SimConnectMSFS;
 
 namespace FlightRecorder.Client.Logics;
 
-public interface IReplayLogic : IConnector
+public interface IReplayAircraftLogic : IDisposable
 {
     event EventHandler<RecordsUpdatedEventArgs> RecordsUpdated;
     event EventHandler ReplayFinished;
     event EventHandler<CurrentFrameChangedEventArgs> CurrentFrameChanged;
 
+    List<(long milliseconds, AircraftPositionStruct position)> Records { get; }
+    string? AircraftTitle { get; set; }
+    bool IsReplayable { get; }
 
     bool Replay();
     bool PauseReplay();

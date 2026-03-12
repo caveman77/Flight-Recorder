@@ -9,8 +9,8 @@ namespace FlightRecorder.Client.Logics
         void Initialize();
         void Record();
         void StopRecording();
-        void NotifyPosition(AircraftPositionStruct? value);
+        //void NotifyPosition(AircraftPositionStruct? value);
 
-        SavedData ToData(string clientVersion);
+        //SavedData ToData(string clientVersion);
     }
 }

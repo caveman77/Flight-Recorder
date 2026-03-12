@@ -17,12 +17,14 @@ public class RecorderLogic : IRecorderLogic, IDisposable
     private long? startMilliseconds;
     private long? endMilliseconds;
     private SimStateStruct startState;
-    private List<(long milliseconds, AircraftPositionStruct position)> records = new();
 
 
     private SimStateStruct simState;
 
-    private bool IsStarted => startMilliseconds.HasValue && records != null;
+    // Need to be done better
+    public bool IsReplayable = true;
+
+    private bool IsStarted => startMilliseconds.HasValue;
     private bool IsEnded => startMilliseconds.HasValue && endMilliseconds.HasValue;
 
     public RecorderLogic(ILogger<RecorderLogic> logger, IConnector connector)
@@ -49,7 +51,7 @@ public class RecorderLogic : IRecorderLogic, IDisposable
         }
     }
 
-    private void Connector_SimStateUpdated(object? sender, SimStateUpdatedEventArgs e)
+      private void Connector_SimStateUpdated(object? sender, SimStateUpdatedEventArgs e)
     {
         simState = e.State;
     }
@@ -70,7 +72,7 @@ public class RecorderLogic : IRecorderLogic, IDisposable
         startMilliseconds = stopwatch.ElapsedMilliseconds;
         endMilliseconds = null;
         startState = simState;
-        records = new List<(long milliseconds, AircraftPositionStruct position)>();
+        //records = new List<(long milliseconds, AircraftPositionStruct position)>();
     }
 
     public void StopRecording()
@@ -78,10 +80,11 @@ public class RecorderLogic : IRecorderLogic, IDisposable
         if (endMilliseconds == null)
         {
             endMilliseconds = stopwatch.ElapsedMilliseconds;
-            logger.LogDebug("Recording stopped. {totalFrames} frames recorded.", records.Count);
+            //logger.LogDebug("Recording stopped. {totalFrames} frames recorded.", records.Count);
         }
     }
 
+    /*
     public void NotifyPosition(AircraftPositionStruct? value)
     {
         if (IsStarted && !IsEnded && value.HasValue)
@@ -90,6 +93,7 @@ public class RecorderLogic : IRecorderLogic, IDisposable
             RecordsUpdated?.Invoke(this, new(null, startState.AircraftTitle, records.Count));
         }
     }
+    
 
     public SavedData ToData(string clientVersion)
     {
@@ -97,6 +101,7 @@ public class RecorderLogic : IRecorderLogic, IDisposable
         if (endMilliseconds == null) throw new InvalidOperationException("Cannot get data before finished recording!");
         return new(clientVersion, startMilliseconds.Value, endMilliseconds.Value, startState, records);
     }
+    */
 
     #endregion
 }

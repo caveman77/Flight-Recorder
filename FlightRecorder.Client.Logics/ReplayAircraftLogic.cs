@@ -10,7 +10,7 @@ using System.Timers;
 
 namespace FlightRecorder.Client.Logics;
 
-public class ReplayLogic : IReplayLogic, IDisposable, IConnector
+public class ReplayAircraftLogic : IReplayAircraftLogic, IDisposable
 {
     public event EventHandler<RecordsUpdatedEventArgs>? RecordsUpdated;
     public event EventHandler? ReplayFinished;
@@ -18,57 +18,73 @@ public class ReplayLogic : IReplayLogic, IDisposable, IConnector
 
     private const int EventThrottleMilliseconds = 500;
 
-    private readonly ILogger<ReplayLogic> logger;
-    private readonly IConnector connector;
+    private readonly ILogger<ReplayAircraftLogic> logger;
+    private readonly IReplayLogic replaylogic;
+
+    // Used to give record duration but also replay duration
     private readonly Stopwatch stopwatch = new();
 
-
+    // Seems to be the start  timing. It can be different from the recording start upon trim
     private long? startMilliseconds;
+
+    // Recording duration (given by Stopwatch)
     private long? endMilliseconds;
     private SimStateStruct? startState;
 
+    public List<(long milliseconds, AircraftPositionStruct position)> Records { get; private set; } = new();
+
+    public string? AircraftTitle { get; set; }
+
     private int currentFrame;
 
+    // Replay speed rate requested by user
     private double rate = 1;
+
     private bool repeat = false;
     private int? pausedFrame;
+
+    // Replay speed rate save when user pressed pause
     private double? pausedRate;
     private bool isReplayStopping;
     private long? replayMilliseconds;
+
+    // Time between the start of the replay timer and the time when pause has been pressed
     private long? pausedMilliseconds;
+
+    // Offset delay between start and replay start point required by user
     private long offsetStartMilliseconds = 0;
     private bool forceReset = false;
 
-
+    private AircraftPositionStruct? currentPosition = null;
     private long? lastTriggeredMilliseconds = null;
     private TaskCompletionSource<bool>? tcs;
 
+    public bool IsReplayable => Records.Count > 0;
     private bool IsReplaying => replayMilliseconds != null && pausedMilliseconds == null;
     private bool IsPausing => pausedMilliseconds != null;
 
     private bool IsAI([NotNullWhen(true)] string? aircraftTitle) => !string.IsNullOrEmpty(aircraftTitle);
+    
+    // Seems to be the Request ID of the request to spawn the AI aircraft
     private uint? aiRequestId = null;
+
+    // The aircraft ID known from MSFS of the spwaned AI Aircraft
     private uint? aiId = null;
     // private Timer timer;
 
-    // Need to be done better
-    public bool IsReplayable = true;
-
-    private IReplayAircraftLogic[] aircrafts = new IReplayAircraftLogic[100];
-
-    public ReplayLogic(ILogger<ReplayLogic> logger, IConnector connector)
+    public ReplayAircraftLogic(ILogger<ReplayAircraftLogic> logger, IReplayLogic replaylogic)
     {
-        logger.LogDebug("Creating instance of {class}", nameof(ReplayLogic));
+        logger.LogDebug("Creating instance of {class}", nameof(ReplayAircraftLogic));
 
         this.logger = logger;
-        this.connector = connector;
+        this.replaylogic = replaylogic;
 
         RegisterEvents();
     }
 
     public void Dispose()
     {
-        logger.LogDebug("Disposing {class}", nameof(RecorderLogic));
+        logger.LogDebug("Disposing {class}", nameof(ReplayAircraftLogic));
         Dispose(true);
         GC.SuppressFinalize(this);
     }
@@ -83,16 +99,16 @@ public class ReplayLogic : IReplayLogic, IDisposable, IConnector
 
     private void RegisterEvents()
     {
-        connector.AircraftIdReceived += Connector_AircraftIdReceived;
-        connector.CreatingObjectFailed += Connector_CreatingObjectFailed;
-        connector.Frame += Connector_Frame;
+        replaylogic.AircraftIdReceived += Connector_AircraftIdReceived;
+        replaylogic.CreatingObjectFailed += Connector_CreatingObjectFailed;
+        replaylogic.Frame += Connector_Frame;
     }
 
     private void DeregisterEvents()
     {
-        connector.AircraftIdReceived -= Connector_AircraftIdReceived;
-        connector.CreatingObjectFailed -= Connector_CreatingObjectFailed;
-        connector.Frame -= Connector_Frame;
+        replaylogic.AircraftIdReceived -= Connector_AircraftIdReceived;
+        replaylogic.CreatingObjectFailed -= Connector_CreatingObjectFailed;
+        replaylogic.Frame -= Connector_Frame;
     }
 
     #region Public Functions
@@ -115,10 +131,20 @@ public class ReplayLogic : IReplayLogic, IDisposable, IConnector
         lastTriggeredMilliseconds = null;
         replayMilliseconds = stopwatch.ElapsedMilliseconds - (long)(offsetStartMilliseconds / rate);
 
-        for (int i = 0; i < aircrafts.Length; i++)
+        if (Records.Any())
         {
-            aircrafts[i].Replay();
+            var currentPosition = Records[currentFrame].position;
+            if (IsAI(AircraftTitle))
+            {
+                aiRequestId = replaylogic.Spawn(AircraftTitle, currentPosition);
+            }
+            else
+            {
+                replaylogic.Init(0, currentPosition);
+            }
         }
+
+        Task.Run(RunReplay);
 
         return true;
     }
@@ -132,11 +158,6 @@ public class ReplayLogic : IReplayLogic, IDisposable, IConnector
             pausedMilliseconds = stopwatch.ElapsedMilliseconds;
             pausedFrame = currentFrame;
             pausedRate = rate;
-
-            for (int i = 0; i < aircrafts.Length; i++)
-            {
-                aircrafts[i].PauseReplay();
-            }
 
             return true;
         }
@@ -154,10 +175,39 @@ public class ReplayLogic : IReplayLogic, IDisposable, IConnector
     {
         if (IsPausing)
         {
-
-            for (int i = 0; i < aircrafts.Length; i++)
+            // Recalculate the projected replayMilliseconds (when replay starts) based on current elapsed period and current rate
+            var frame = currentFrame;
+            if (frame == pausedFrame)
             {
-                aircrafts[i].ResumeReplay();
+                // No seeking => Resume based on pause time
+                if (pausedMilliseconds == null) throw new InvalidOperationException("Cannot resume without pause time!");
+                if (replayMilliseconds == null) throw new InvalidOperationException("Cannot resume without replay time!");
+                if (pausedRate == null) throw new InvalidOperationException("Cannot resume without pause rate!");
+                replayMilliseconds = stopwatch.ElapsedMilliseconds - (long)((pausedMilliseconds - replayMilliseconds) / rate * pausedRate);
+            }
+            else
+            {
+                // Resume based on seeked frame
+                if (startMilliseconds == null) throw new InvalidOperationException("Cannot resume without start time!");
+                replayMilliseconds = stopwatch.ElapsedMilliseconds - (long)((Records[frame].milliseconds - startMilliseconds) / rate);
+            }
+
+            // Initialize resumed position
+            if (frame == -1)
+            {
+                // Ignore as this happens when Pause is clicked before the first frame is calculated
+            }
+            else if (frame == pausedFrame)
+            {
+                // Ignore to prevent init unnecessarily
+            }
+            else if (frame >= 0 && frame < Records.Count)
+            {
+                replaylogic.Init(aiId ?? 0, Records[frame].position);
+            }
+            else
+            {
+                throw new InvalidOperationException($"Cannot resume at frame {frame} because there are only {Records.Count} frames!");
             }
 
             // Signal unpaused
@@ -176,10 +226,7 @@ public class ReplayLogic : IReplayLogic, IDisposable, IConnector
             isReplayStopping = true;
 
             // Make sure at least one more tick happens to handle sim exit
-            for (int i = 0; i < aircrafts.Length; i++)
-            {
-                aircrafts[i].StopReplay();
-            }
+            Tick();
 
             return true;
         }
@@ -198,11 +245,7 @@ public class ReplayLogic : IReplayLogic, IDisposable, IConnector
             (var elapsed, var position) = Records[value];
             if (IsPausing)
             {
-                for (int i = 0; i < aircrafts.Length; i++)
-                {
-                    aircrafts[i].MoveAircraft(elapsed, position, null, null, 0);
-                }
-                
+                MoveAircraft(elapsed, position, null, null, 0);
             }
             else if (!IsReplaying)
             {
@@ -268,15 +311,16 @@ public class ReplayLogic : IReplayLogic, IDisposable, IConnector
         {
             if (!IsAI(AircraftTitle))
             {
-                connector.Unfreeze(0);
+                replaylogic.Unfreeze(0);
             }
             else if (aiId.HasValue)
             {
-                connector.Unfreeze(aiId.Value);
+                replaylogic.Unfreeze(aiId.Value);
             }
         }
     }
 
+    // Seems to be used only for recording
     public void NotifyPosition(AircraftPositionStruct? value)
     {
         currentPosition = value;
@@ -343,7 +387,7 @@ public class ReplayLogic : IReplayLogic, IDisposable, IConnector
 
         if (!IsAI(AircraftTitle))
         {
-            connector.Freeze(0);
+            replaylogic.Freeze(0);
         }
 
         var enumerator = Records.GetEnumerator();
@@ -456,7 +500,7 @@ public class ReplayLogic : IReplayLogic, IDisposable, IConnector
 
             if (aiId.HasValue)
             {
-                connector.Despawn(aiId.Value);
+                replaylogic.Despawn(aiId.Value);
                 aiId = null;
             }
         }
@@ -486,7 +530,7 @@ public class ReplayLogic : IReplayLogic, IDisposable, IConnector
         offsetStartMilliseconds = 0;
     }
 
-    private void MoveAircraft(long nextElapsed, AircraftPositionStruct position, long? lastElapsed, AircraftPositionStruct? lastPosition, long currentElapsed)
+    public void MoveAircraft(long nextElapsed, AircraftPositionStruct position, long? lastElapsed, AircraftPositionStruct? lastPosition, long currentElapsed)
     {
         logger.LogTrace("Delta time {delta} {current} {recorded}.", currentElapsed - nextElapsed, currentElapsed, nextElapsed);
 
@@ -504,10 +548,10 @@ public class ReplayLogic : IReplayLogic, IDisposable, IConnector
         if (!IsAI(AircraftTitle) && currentPosition.HasValue && (lastTriggeredMilliseconds == null || stopwatch.ElapsedMilliseconds > lastTriggeredMilliseconds + EventThrottleMilliseconds))
         {
             lastTriggeredMilliseconds = stopwatch.ElapsedMilliseconds;
-            connector.TriggerEvents(currentPosition.Value, position);
+            replaylogic.TriggerEvents(currentPosition.Value, position);
         }
 
-        connector.Set(aiId ?? 0, nextValue);
+        replaylogic.Set(aiId ?? 0, nextValue);
     }
 
     private void Tick()
