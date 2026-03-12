@@ -19,11 +19,17 @@ public class ReplayLogic : IReplayLogic, IDisposable
     private const int EventThrottleMilliseconds = 500;
 
     private readonly ILogger<ReplayLogic> logger;
+
+    // SimConnect connector interface
     private readonly IConnector connector;
+
+    // Used to give record duration but also replay duration
     private readonly Stopwatch stopwatch = new();
 
-
+    // Seems to be the start  timing. It can be different from the recording start upon trim
     private long? startMilliseconds;
+
+    // Recording duration (given by Stopwatch)
     private long? endMilliseconds;
     private SimStateStruct? startState;
 
@@ -33,13 +39,21 @@ public class ReplayLogic : IReplayLogic, IDisposable
 
     private int currentFrame;
 
+    // Replay speed rate requested by user
     private double rate = 1;
+
     private bool repeat = false;
     private int? pausedFrame;
+
+    // Replay speed rate save when user pressed pause
     private double? pausedRate;
     private bool isReplayStopping;
     private long? replayMilliseconds;
+
+    // Time between the start of the replay timer and the time when pause has been pressed
     private long? pausedMilliseconds;
+
+    // Offset delay between start and replay start point required by user
     private long offsetStartMilliseconds = 0;
     private bool forceReset = false;
 
@@ -52,7 +66,11 @@ public class ReplayLogic : IReplayLogic, IDisposable
     private bool IsPausing => pausedMilliseconds != null;
 
     private bool IsAI([NotNullWhen(true)] string? aircraftTitle) => !string.IsNullOrEmpty(aircraftTitle);
+
+    // Seems to be the Request ID of the request to spawn the AI aircraft
     private uint? aiRequestId = null;
+
+    // The aircraft ID known from MSFS of the spwaned AI Aircraft
     private uint? aiId = null;
     // private Timer timer;
 
