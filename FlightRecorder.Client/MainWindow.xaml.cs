@@ -157,10 +157,12 @@ public partial class MainWindow : BaseWindow
 
     private void ButtonReplayAI_Click(object sender, RoutedEventArgs e)
     {
+        /*
         var window = CreateAIWindow();
         window.Owner = this;
         window.ShowInTaskbar = false;
         window.ShowWithData(viewModel.SimState?.AircraftTitle, viewModel.FileName, replayLogic.ToData(currentVersion));
+        */
     }
 
     private async void ButtonSave_Click(object sender, RoutedEventArgs e)
@@ -289,7 +291,7 @@ public partial class MainWindow : BaseWindow
 
     protected override void Draw()
     {
-        drawingLogic.Draw(replayLogic.Records, () => viewModel.CurrentFrame, viewModel.State, (int)ImageWrapper.ActualWidth, (int)ImageWrapper.ActualHeight, ImageChart);
+        drawingLogic.Draw(replayLogic.User_Records, () => viewModel.CurrentFrame, viewModel.State, (int)ImageWrapper.ActualWidth, (int)ImageWrapper.ActualHeight, ImageChart);
     }
 
     private void TextBlock_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -321,6 +323,7 @@ public partial class MainWindow : BaseWindow
         window.ShowDialog();
     }
 
+    // Warning : Only the user aircraft is exported
     private async Task ExportAsync(IExportLogic exportLogic)
     {
         var dialog = new SaveFileDialog
@@ -332,7 +335,7 @@ public partial class MainWindow : BaseWindow
         {
             try
             {
-                await exportLogic.ExportAsync(dialog.FileName, replayLogic.Records.Select(o =>
+                await exportLogic.ExportAsync(dialog.FileName, replayLogic.User_Records.Select(o =>
                 {
                     var result = AircraftPosition.FromStruct(o.position);
                     result.Milliseconds = o.milliseconds;

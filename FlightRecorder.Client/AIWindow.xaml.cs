@@ -29,7 +29,7 @@ public partial class AIWindow : BaseWindow
     {
         viewModel.CurrentAircraftTitle = currentAircraftTitle;
         replayLogic.FromData(fileName, savedData);
-        replayLogic.AircraftTitle = viewModel.AircraftTitle;
+        //replayLogic.AircraftTitle = viewModel.AircraftTitle;
         Show();
     }
     public void ShowWithData(string? currentAircraftTitle)
@@ -130,11 +130,11 @@ public partial class AIWindow : BaseWindow
             Close();
         }
 
-        replayLogic.AircraftTitle = viewModel.ReplayAircraftTitle;
+        //replayLogic.AircraftTitle = viewModel.ReplayAircraftTitle;
     }
 
     protected override void Draw()
     {
-        drawingLogic.Draw(replayLogic.Records, () => viewModel.CurrentFrame, viewModel.State, (int)ImageWrapper.ActualWidth, (int)ImageWrapper.ActualHeight, ImageChart);
+        drawingLogic.Draw(replayLogic.User_Records, () => viewModel.CurrentFrame, viewModel.State, (int)ImageWrapper.ActualWidth, (int)ImageWrapper.ActualHeight, ImageChart);
     }
 }

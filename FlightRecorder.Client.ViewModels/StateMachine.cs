@@ -266,7 +266,7 @@ public class StateMachine : StateMachineCore
 
     private async Task<bool> SaveRecordingAsync(ActionContext actionContext)
     {
-        var data = replayLogic.ToData(currentVersion);
+        var data = recorderLogic.ToData(currentVersion);
 
         async Task<string?> GetSavePath()
         {

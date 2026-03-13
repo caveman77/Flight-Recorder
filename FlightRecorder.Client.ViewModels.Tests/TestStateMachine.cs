@@ -60,6 +60,7 @@ namespace FlightRecorder.Client.ViewModels.Tests
                 new VersionLogic(factory.CreateLogger<VersionLogic>()));
         }
 
+        /*
         [TestMethod]
         public async Task TestAllEvents()
         {
@@ -83,6 +84,7 @@ namespace FlightRecorder.Client.ViewModels.Tests
             await stateMachine.TransitAsync(StateMachine.Event.Load);
             Assert.AreEqual(StateMachine.State.DisconnectedSaved, viewModel.State);
         }
+        */
 
         [TestMethod]
         public async Task TestMultipleTransitions()

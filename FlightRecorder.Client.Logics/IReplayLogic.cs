@@ -9,8 +9,10 @@ public interface IReplayLogic
     event EventHandler ReplayFinished;
     event EventHandler<CurrentFrameChangedEventArgs> CurrentFrameChanged;
 
-    List<(long milliseconds, AircraftPositionStruct position)> Records { get; }
-    string? AircraftTitle { get; set; }
+    public List<List<(long milliseconds, AircraftPositionStruct position)>> Records { get; }
+
+    public List<(long milliseconds, AircraftPositionStruct position)> User_Records { get; }
+
     bool IsReplayable { get; }
 
     bool Replay();
@@ -26,5 +28,5 @@ public interface IReplayLogic
     void NotifyPosition(AircraftPositionStruct? value);
 
     void FromData(string? fileName, SavedData data);
-    SavedData ToData(string clientVersion);
+    //SavedData ToData(string clientVersion);
 }
