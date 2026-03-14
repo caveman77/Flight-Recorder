@@ -30,7 +30,7 @@ public class AircraftWithObjectID
 
 public class SavedData
 {
-
+    /*
     // Aircrafts are order the same way on the different lists
     public SavedData(string clientVersion, long startTime, long endTime, SimStateStruct? simState, uint userArcraftID, List<AircraftWithObjectID> aircraftList, List<List<AircraftRecord>> records_reorganised, List<List<AircraftStatus>> minutes_reoganised )
     {
@@ -70,11 +70,12 @@ public class SavedData
 
         }
     }
+    */
 
 
 
     // Aircrafts are order the same way on the different lists
-    public SavedData(string clientVersion, long startTime, long endTime, SimStateStruct? simState, uint userArcraftID, List<AircraftWithObjectID> aircraftList, List<List<SavedRecord>> records_reorganised, List<List<AircraftStatus>> minutes_reoganised)
+    public SavedData(string clientVersion, long startTime, long endTime, SimStateStruct? simState, uint userArcraftID, List<AircraftWithObjectID> aircraftList, List<List<SavedRecord>> records_reorganised)
     {
         ClientVersion = clientVersion;
         StartTime = startTime;
@@ -83,7 +84,6 @@ public class SavedData
 
         AircraftList = new List<AircraftWithObjectID>();
         Records = records_reorganised;
-        Minute_status = new List<List<AircraftStatus>>();
         UserArcraftID = userArcraftID;
 
     }
@@ -97,7 +97,7 @@ public class SavedData
         StartState = startState;
         Records = records ?? new List<List<SavedRecord>>();
         AircraftList = aircraftList;
-        Minute_status = minute_status;
+        //Minute_status = minute_status;
         UserArcraftID = userArcraftID;
     }
 
@@ -111,7 +111,7 @@ public class SavedData
     public List<AircraftWithObjectID> AircraftList { get; set; }
     public List<List<SavedRecord>>? Records { get; set; }
 
-    public List<List<AircraftStatus>>? Minute_status { get; set; }
+    //public List<List<AircraftStatus>>? Minute_status { get; set; }
 
     public class SavedRecord
     {

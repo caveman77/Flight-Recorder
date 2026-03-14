@@ -37,13 +37,13 @@ public class ReplayLogic : IReplayLogic, IDisposable
     private SimStateStruct? startState;
 
     // Records of all positions of all aircraft along the time
-    public List<List<(long milliseconds, AircraftPositionStruct position)>> Records { get; private set; } = new();
+    public List<List<(long milliseconds, AircraftPositionStruct? position)>> Records { get; private set; } = new();
 
     // Every minute aircraft status notifications
     public List<List<(long milliseconds, SimStateStruct? position)>> Sorrounding_records { get; private set; } = new ();
 
     // User Aircraft records
-    public List<(long milliseconds, AircraftPositionStruct position)> User_Records { get; private set; } = new();
+    //public List<(long milliseconds, AircraftPositionStruct? position)> User_Records { get; private set; } = new();
 
     // list of the ID of the Aircraft as recorded (same order as the orther lists)
     public List<AircraftWithObjectID> AircraftList { get; private set; } = new();
@@ -392,19 +392,35 @@ public class ReplayLogic : IReplayLogic, IDisposable
         UserArcraftID = data.UserArcraftID;
         Reset();
 
-        Records = new List<List<(long milliseconds, AircraftPositionStruct position)>>();
-        User_Records = new List<(long milliseconds, AircraftPositionStruct position)>();
+        Records = new List<List<(long milliseconds, AircraftPositionStruct? position)>>();
+        //User_Records = new List<(long milliseconds, AircraftPositionStruct? position)>();
 
         if (data.Records != null)
         {
             int i = 0;
             foreach (var listr in data.Records)
             {
-                var cur_list = listr.Select(r => (r.Time, AircraftPosition.ToStruct(r.Position))).ToList();
-                Records.Add(cur_list);
+                List<(long Time, AircraftPositionStruct? position)> mylist = new List<(long Time, AircraftPositionStruct? position)>();
 
-                if (data.AircraftList[i].objectID == data.UserArcraftID)
-                    User_Records = cur_list;
+                foreach (var record in listr)
+                {
+                    
+                    if (record.Position != null)
+                    {
+                        mylist.Add(( record.Time, (AircraftPositionStruct?)AircraftPosition.ToStruct(record.Position)));
+                    }
+                    else
+                    {
+                        mylist.Add( (record.Time, null) );
+                    }
+
+
+                }
+
+                Records.Add(mylist);
+
+                //if (data.AircraftList[i].objectID == data.UserArcraftID)
+                //    User_Records = mylist;
 
                 i++;
             }
