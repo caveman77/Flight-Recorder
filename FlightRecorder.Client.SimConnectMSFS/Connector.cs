@@ -204,13 +204,13 @@ public partial class Connector : IConnector
             SIMCONNECT_PERIOD.SECOND,
             SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT,
             0, 0, 0);
-
+        /*
         simconnect?.RequestDataOnSimObject(
             DATA_REQUESTS.AIRCRAFT_POSITION, DEFINITIONS.AircraftPosition, 0,
             SIMCONNECT_PERIOD.SIM_FRAME,
             SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT,
             0, 0, 0);
-
+        */
         // CHU
         StartTimer();
     }
@@ -362,7 +362,7 @@ public partial class Connector : IConnector
                             (DATA_REQUESTS) data.dwObjectID, DEFINITIONS.AircraftPosition, data.dwObjectID,
                             SIMCONNECT_PERIOD.SIM_FRAME,
                             SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT,
-                            0, 0, 25*60);
+                            0, 0, 100*60);
                     }
 
 

@@ -179,19 +179,19 @@ public class ReplayLogic : IReplayLogic, IDisposable
             int i = 0;
             foreach (var aircraftposlist in Records)
             {
-                /*
+                
                 var currentPosition = aircraftposlist[currentFrame].position;
                 if (currentPosition == null)
                     currentPosition = defaultPosition;
-                */
+                
 
                 if (AircraftList[i].objectID != UserArcraftID)
                 {
-                    aiRequestId[i] = connector.Spawn(AircraftList[i].aircraftStatus.AircraftTitle, (AircraftPositionStruct)defaultPosition);
+                    aiRequestId[i] = connector.Spawn(AircraftList[i].aircraftStatus.AircraftTitle, (AircraftPositionStruct)currentPosition);
                 }
                 else
                 {
-                    connector.Init(0, defaultPosition);
+                    connector.Init(0, (AircraftPositionStruct)currentPosition);
                 }
                 
                 i++;
@@ -625,7 +625,13 @@ public class ReplayLogic : IReplayLogic, IDisposable
                 foreach (var avion in aiId)
                 {
                     if (avion!=null)
-                        MoveAircraft((uint)avion, recordedElapsed.Value, Records[i][currentFrame].position, lastElapsed, lastPosition, currentElapsed);
+                    {
+                        //MoveAircraft((uint)avion, recordedElapsed.Value, Records[i][currentFrame].position, lastElapsed, lastPosition, currentElapsed);
+                        MoveAircraft((uint)avion, recordedElapsed.Value, Records[i][currentFrame].position, null, null, 0);
+                    }
+                        
+
+                   
 
                     ++i;
                 }
@@ -710,6 +716,7 @@ public class ReplayLogic : IReplayLogic, IDisposable
             position = default;
 
         var nextValue = AircraftPositionStructOperator.ToSet((AircraftPositionStruct)position);
+        
         if (lastPosition.HasValue && lastElapsed.HasValue)
         {
             var interpolation = (double)(currentElapsed - lastElapsed.Value) / (nextElapsed - lastElapsed.Value);
@@ -720,11 +727,13 @@ public class ReplayLogic : IReplayLogic, IDisposable
             }
             nextValue = AircraftPositionStructOperator.Interpolate(nextValue, AircraftPositionStructOperator.ToSet(lastPosition.Value), interpolation);
         }
+        
         if ((dwObjectId != UserArcraftID) && currentPosition.HasValue && (lastTriggeredMilliseconds == null || stopwatch.ElapsedMilliseconds > lastTriggeredMilliseconds + EventThrottleMilliseconds))
         {
             lastTriggeredMilliseconds = stopwatch.ElapsedMilliseconds;
             connector.TriggerEvents(currentPosition.Value, (AircraftPositionStruct)position);
         }
+        
 
         connector.Set(dwObjectId, nextValue);
     }
