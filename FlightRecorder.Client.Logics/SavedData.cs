@@ -80,10 +80,10 @@ public class SavedData
         StartTime = startTime;
         EndTime = endTime;
         StartState = simState.HasValue ? SimState.FromStruct(simState.Value) : null;
-
-        AircraftList = new List<AircraftWithObjectID>();
         Records = records_reorganised;
-        Minute_status = new List<List<AircraftStatus>>();
+        AircraftList = aircraftList;
+        Records = records_reorganised;
+        Minute_status = minutes_reoganised;
         UserArcraftID = userArcraftID;
 
     }

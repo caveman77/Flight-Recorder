@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 using FlightRecorder.Client.SimConnectMSFS;
 using Microsoft.Extensions.Logging;
 using SharpKml.Dom;
@@ -121,7 +122,7 @@ public class RecorderLogic : IRecorderLogic, IDisposable
 
     
     // A lot of work here to be done
-    public SavedData ToData(string clientVersion)
+    public async Task<SavedData>  ToData(string clientVersion)
     {
         if (startMilliseconds == null) throw new InvalidOperationException("Cannot get data before started recording!");
         if (endMilliseconds == null) throw new InvalidOperationException("Cannot get data before finished recording!");
@@ -204,7 +205,8 @@ public class RecorderLogic : IRecorderLogic, IDisposable
                     if ((startshift == 0) && (listPositionUserAircraft[indexer].milliseconds >= firsthappearance))
                         startshift = indexer;
 
-                    if ((indexer + startshift  >= listPositionAIAircraft.Count ) || (singleAircraftRecord[indexer].Time < firsthappearance) || (listPositionAIAircraft[indexer + startshift].position == null))
+                    //logger.LogError("tt {indexer} {startshift} {Count} {Count2}", indexer, startshift, listPositionAIAircraft.Count, singleAircraftRecord.Count);
+                    if ((indexer + startshift  >= listPositionAIAircraft.Count ) || (Time < firsthappearance) || (listPositionAIAircraft[indexer + startshift].position == null))
                     {
                         Position = null;
                     }
@@ -256,7 +258,10 @@ public class RecorderLogic : IRecorderLogic, IDisposable
 
         }
 
-        return new(clientVersion, startMilliseconds.Value, endMilliseconds.Value, startState, userAircraftObjectID, listAircraft, records_reorganised, minutes_reorganised);
+        await Task.Yield();
+
+        SavedData outcome = new SavedData(clientVersion, startMilliseconds.Value, endMilliseconds.Value, startState, userAircraftObjectID, listAircraft, records_reorganised, minutes_reorganised);
+        return outcome;
     }
     
     #endregion

@@ -257,16 +257,19 @@ public class StateMachine : StateMachineCore
         return true;
     }
 
-    private bool StopRecording()
+    private async Task<bool> StopRecording()
     {
         recorderLogic.StopRecording();
-        replayLogic.FromData(null, recorderLogic.ToData(currentVersion));
+        Task<SavedData> saveddatatask = recorderLogic.ToData(currentVersion);
+        var saveddata = await saveddatatask;
+
+        replayLogic.FromData(null, saveddata);
         return true;
     }
 
     private async Task<bool> SaveRecordingAsync(ActionContext actionContext)
     {
-        var data = recorderLogic.ToData(currentVersion);
+        var data = await recorderLogic.ToData(currentVersion);
 
         async Task<string?> GetSavePath()
         {

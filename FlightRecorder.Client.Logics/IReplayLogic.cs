@@ -9,7 +9,7 @@ public interface IReplayLogic
     event EventHandler ReplayFinished;
     event EventHandler<CurrentFrameChangedEventArgs> CurrentFrameChanged;
 
-    public List<List<(long milliseconds, AircraftPositionStruct position)>> Records { get; }
+    public List<List<(long milliseconds, AircraftPositionStruct? position)>> Records { get; }
 
     public List<(long milliseconds, AircraftPositionStruct position)> User_Records { get; }
 

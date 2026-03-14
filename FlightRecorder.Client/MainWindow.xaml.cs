@@ -337,9 +337,9 @@ public partial class MainWindow : BaseWindow
             {
                 await exportLogic.ExportAsync(dialog.FileName, replayLogic.User_Records.Select(o =>
                 {
-                    var result = AircraftPosition.FromStruct(o.position);
-                    result.Milliseconds = o.milliseconds;
-                    return result;
+                        var result = AircraftPosition.FromStruct(o.position);
+                        result.Milliseconds = o.milliseconds;
+                        return result;
                 }));
 
                 logger.LogDebug("Save file into {fileName}", dialog.FileName);

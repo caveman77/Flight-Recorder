@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace FlightRecorder.Client.Logics
 {
@@ -11,6 +12,6 @@ namespace FlightRecorder.Client.Logics
         void StopRecording();
         void NotifyPosition(uint dwObjectID, AircraftPositionStruct? value);
 
-        SavedData ToData(string clientVersion);
+        Task <SavedData> ToData(string clientVersion);
     }
 }
