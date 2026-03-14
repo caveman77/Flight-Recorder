@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 
 namespace FlightRecorder.Client.Logics;
 
@@ -8,7 +10,7 @@ namespace FlightRecorder.Client.Logics;
 public class AircraftRecord
 {
     public long milliseconds;
-    public AircraftPositionStruct position;
+    public AircraftPositionStruct? position;
 }
 
 
@@ -48,11 +50,17 @@ public class SavedData
             
             if (aircraftListrec.Count > 0)
             {
-                Records.Add( aircraftListrec.Select(r => new SavedRecord
-                    (
-                        r.milliseconds,
-                        AircraftPosition.FromStruct(r.position)
-                    )).ToList());
+                List< SavedRecord > mylist = new List< SavedRecord >();
+                
+                for (int j = 0; j < aircraftListrec.Count; j++) 
+                {
+
+                    var toto4 = new SavedRecord(aircraftListrec[j].milliseconds, aircraftListrec[j].position != null ? AircraftPosition.FromStruct((AircraftPositionStruct)aircraftListrec[j].position) : null);
+                    mylist.Add(toto4);
+
+                }
+
+                Records.Add(mylist);
 
                 Minute_status.Add(minutes_reoganised[i]);
                 AircraftList.Add(aircraftList[i]);
@@ -61,6 +69,23 @@ public class SavedData
             i++;
 
         }
+    }
+
+
+
+    // Aircrafts are order the same way on the different lists
+    public SavedData(string clientVersion, long startTime, long endTime, SimStateStruct? simState, uint userArcraftID, List<AircraftWithObjectID> aircraftList, List<List<SavedRecord>> records_reorganised, List<List<AircraftStatus>> minutes_reoganised)
+    {
+        ClientVersion = clientVersion;
+        StartTime = startTime;
+        EndTime = endTime;
+        StartState = simState.HasValue ? SimState.FromStruct(simState.Value) : null;
+
+        AircraftList = new List<AircraftWithObjectID>();
+        Records = records_reorganised;
+        Minute_status = new List<List<AircraftStatus>>();
+        UserArcraftID = userArcraftID;
+
     }
 
     [JsonConstructor]
@@ -90,13 +115,13 @@ public class SavedData
 
     public class SavedRecord
     {
-        public SavedRecord(long time, AircraftPosition position)
+        public SavedRecord(long time, AircraftPosition? position)
         {
             Time = time;
             Position = position;
         }
 
         public long Time { get; set; }
-        public AircraftPosition Position { get; set; }
+        public AircraftPosition? Position { get; set; }
     }
 }
