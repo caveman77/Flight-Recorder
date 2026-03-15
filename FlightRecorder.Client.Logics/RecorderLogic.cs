@@ -16,6 +16,7 @@ namespace FlightRecorder.Client.Logics;
 public class RecorderLogic : IRecorderLogic, IDisposable
 {
     public event EventHandler<RecordsUpdatedEventArgs>? RecordsUpdated;
+    public event EventHandler<RecordsUpdatedEventArgs> AircraftUpdated;
 
     private readonly ILogger<RecorderLogic> logger;
     private readonly IConnector connector;
@@ -72,8 +73,10 @@ public class RecorderLogic : IRecorderLogic, IDisposable
     {
         if (IsStarted && !IsEnded)
         {
-            logger.LogError("RecorderLogic - Connector_SimSouroundingAircraft CHU CHU_LISTAIRCRAFT - aircraft: {AircraftNumber} {AircraftModel} {AircraftType} {AircraftTitle}", e.State.AircraftNumber, e.State.AircraftModel, e.State.AircraftType, e.State.AircraftTitle);
+            logger.LogDebug("RecorderLogic - aircraft: {AircraftNumber} {AircraftModel} {AircraftType} {AircraftTitle}", e.State.AircraftNumber, e.State.AircraftModel, e.State.AircraftType, e.State.AircraftTitle);
             sorrounding_records.Add((stopwatch.ElapsedMilliseconds, e.dwObjectID, e.State));
+
+            AircraftUpdated?.Invoke(this, new(null, startState.AircraftTitle, sorrounding_records.Count));
         }
 
     }
@@ -115,13 +118,11 @@ public class RecorderLogic : IRecorderLogic, IDisposable
         {
             records.Add((stopwatch.ElapsedMilliseconds, dwObjectID, value.Value));
 
-            // To be done: Filtering here to send information about the user aircraft
             RecordsUpdated?.Invoke(this, new(null, startState.AircraftTitle, records.Count));
         }
     }
 
     
-    // A lot of work here to be done
     public async Task<SavedData>  ToData(string clientVersion)
     {
         if (startMilliseconds == null) throw new InvalidOperationException("Cannot get data before started recording!");
@@ -205,8 +206,9 @@ public class RecorderLogic : IRecorderLogic, IDisposable
                     if ((startshift == 0) && (listPositionUserAircraft[indexer].milliseconds >= firsthappearance))
                         startshift = indexer;
 
+                    int indexAI = indexer - startshift;
                     //logger.LogError("tt {indexer} {startshift} {Count} {Count2}", indexer, startshift, listPositionAIAircraft.Count, singleAircraftRecord.Count);
-                    if ((indexer + startshift  >= listPositionAIAircraft.Count ) || (Time < firsthappearance) || (listPositionAIAircraft[indexer + startshift].position == null))
+                    if ((startshift == 0) || (indexAI  >= listPositionAIAircraft.Count) || (listPositionAIAircraft[indexAI].position == null))
                     {
                         Position = null;
                     }
@@ -214,7 +216,7 @@ public class RecorderLogic : IRecorderLogic, IDisposable
                     {
                         //logger.LogError("tt {indexer} {startshift} {Count} {Count2}", indexer, startshift, listPositionAIAircraft.Count, singleAircraftRecord.Count);
                         //singleAircraftRecord[indexer].position = listPositionAIAircraft[indexer + startshift].position;
-                        Position = AircraftPosition.FromStruct((AircraftPositionStruct)listPositionAIAircraft[indexer + startshift].position);
+                        Position = AircraftPosition.FromStruct((AircraftPositionStruct)listPositionAIAircraft[indexAI].position);
                         
                     }
 

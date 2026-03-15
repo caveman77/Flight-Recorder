@@ -96,10 +96,11 @@
                         </Button.ContextMenu>
                     </Button>
                 </StackPanel>
-
                 <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
-                    <TextBlock Text="Total: " />
+                    <TextBlock Text="Total (Frames/Aircrafts): " />
                     <TextBlock Text="{Binding FrameCount}" />
+                    <TextBlock Text=" / " />
+                    <TextBlock Text="{Binding AircraftCount}" />
                 </StackPanel>
             </Grid>
 

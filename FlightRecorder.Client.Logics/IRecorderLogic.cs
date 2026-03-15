@@ -6,6 +6,7 @@ namespace FlightRecorder.Client.Logics
     public interface IRecorderLogic
     {
         event EventHandler<RecordsUpdatedEventArgs> RecordsUpdated;
+        event EventHandler<RecordsUpdatedEventArgs> AircraftUpdated;
 
         void Initialize();
         void Record();

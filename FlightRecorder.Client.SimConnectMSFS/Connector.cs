@@ -35,10 +35,9 @@ public partial class Connector : IConnector
 
     public void TimerCallback(object state)
     {
-        logger.LogError("SimConnect TimerCallback - ");
+        logger.LogTrace("SimConnect TimerCallback - ");
 
-        logger.LogError("SimConnect CHU RequestDataOnSimObjectType");
-        uint radius = 1000;  // in meters
+        uint radius = 5000;  // in meters
         simconnect?.RequestDataOnSimObjectType(
             DATA_REQUESTS.CHU_LISTAIRCRAFT, DEFINITIONS.SimState, radius, SIMCONNECT_SIMOBJECT_TYPE.AIRCRAFT);
     }
@@ -50,8 +49,6 @@ public partial class Connector : IConnector
 
     public Connector(ILogger<Connector> logger)
     {
-        // CHU
-        logger.LogError("SimConnect CHU Connector");
 
         logger.LogDebug("Creating instance of {class}", nameof(Connector));
         this.logger = logger;
@@ -69,7 +66,6 @@ public partial class Connector : IConnector
         simconnect.OnRecvEvent += Simconnect_OnRecvEvent;
         simconnect.OnRecvSimobjectData += Simconnect_OnRecvSimobjectData;
 
-        // CHU
         simconnect.OnRecvSimobjectDataBytype += new SimConnect.RecvSimobjectDataBytypeEventHandler(simconnect_OnRecvSimobjectDataBytype);
 
         RegisterSimStateDefinition();
@@ -204,14 +200,14 @@ public partial class Connector : IConnector
             SIMCONNECT_PERIOD.SECOND,
             SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT,
             0, 0, 0);
-        /*
+        /* would provide twice the user aircraft
         simconnect?.RequestDataOnSimObject(
             DATA_REQUESTS.AIRCRAFT_POSITION, DEFINITIONS.AircraftPosition, 0,
             SIMCONNECT_PERIOD.SIM_FRAME,
             SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT,
             0, 0, 0);
         */
-        // CHU
+        // 
         StartTimer();
     }
 
@@ -324,13 +320,12 @@ public partial class Connector : IConnector
                 break;
             default:
                 {
-                    logger.LogTrace("SimConnect CHU CHU_AI_POSITION");
+                    logger.LogTrace("SimConnect AI_POSITION");
 
                     var position = data.dwData[0] as AircraftPositionStruct?;
                     if (position.HasValue)
                     {
                         AircraftPositionStruct toto = (AircraftPositionStruct)position.Value;
-                        logger.LogTrace("SimConnect CHU CHU_AI_POSITION - aircraft [{i}]: {TrueHeading} {TrueAirspeed}", data.dwObjectID, toto.TrueHeading, toto.TrueAirspeed);
                         ProcessAircraftPosition(data.dwObjectID, position.Value);
                     }
 
@@ -339,14 +334,14 @@ public partial class Connector : IConnector
         }
     }
 
-    // CHU
+    // Sorrounding aircraft notification
     void simconnect_OnRecvSimobjectDataBytype(SimConnect sender, SIMCONNECT_RECV_SIMOBJECT_DATA_BYTYPE data)
     {
 
         switch ((DATA_REQUESTS)data.dwRequestID)
         {
             case DATA_REQUESTS.CHU_LISTAIRCRAFT:
-                logger.LogError("SimConnect CHU CHU_LISTAIRCRAFT 2 {length} objectID:{dwObjectID}", data.dwData.Length, data.dwObjectID);
+                logger.LogTrace("SimConnect CHU_LISTAIRCRAFT 2 {length} objectID:{dwObjectID}", data.dwData.Length, data.dwObjectID);
 
                 for (int i = 0;i < data.dwData.Length;i++)
                 {
@@ -354,7 +349,7 @@ public partial class Connector : IConnector
                     if (position != null)
                     {
                         SimStateStruct toto = (SimStateStruct)position;
-                        logger.LogError("SimConnect CHU CHU_LISTAIRCRAFT - aircraft [{i}]: {AircraftNumber} {AircraftModel} {AircraftType} {AircraftTitle}", i, toto.AircraftNumber, toto.AircraftModel, toto.AircraftType, toto.AircraftTitle);
+                        logger.LogTrace("SimConnect CHU_LISTAIRCRAFT - aircraft [{i}]: {AircraftNumber} {AircraftModel} {AircraftType} {AircraftTitle}", i, toto.AircraftNumber, toto.AircraftModel, toto.AircraftType, toto.AircraftTitle);
                         ProcessSourroundingAircraft(data.dwObjectID, toto);
 
                         // Requesting position for a new set of frame. 
@@ -387,7 +382,7 @@ public partial class Connector : IConnector
 
     private void Simconnect_OnRecvEventFrame(SimConnect sender, SIMCONNECT_RECV_EVENT_FRAME data)
     {
-        logger.LogTrace("Frame: {simSpeed} {frameRate}", data.fSimSpeed, data.fFrameRate);
+        logger.LogDebug("Frame: {simSpeed} {frameRate}", data.fSimSpeed, data.fFrameRate);
         Frame?.Invoke(this, new EventArgs());
     }
 

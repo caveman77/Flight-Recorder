@@ -530,10 +530,10 @@ public class ReplayLogic : IReplayLogic, IDisposable
         var enumerator = User_Records.GetEnumerator();
         currentFrame = -1;
         long? recordedElapsed = null;
-        AircraftPositionStruct? position = null;
+        //AircraftPositionStruct? position = null;
 
         long? lastElapsed = 0;
-        AircraftPositionStruct? lastPosition = null;
+        //AircraftPositionStruct? lastPosition = null;
 
         while (true)
         {
@@ -543,6 +543,8 @@ public class ReplayLogic : IReplayLogic, IDisposable
             tcs = new TaskCompletionSource<bool>();
             await tcs.Task;
             tcs = null;
+
+            logger.LogTrace("RunReplay - after tick {currentFrame} {isReplayStopping} {forceReset} {recordedElapsed} {IsPausing}", currentFrame, isReplayStopping, forceReset, recordedElapsed, IsPausing);
 
             if (isReplayStopping)
             {
@@ -573,25 +575,26 @@ public class ReplayLogic : IReplayLogic, IDisposable
             if (forceReset || (pausedFrame != null && pausedFrame != currentFrame))
             {
                 // Reset the enumerator since user might seek backward or change changed due to trimming
-                logger.LogDebug("Reset interaction. Pause frame {frame}.", pausedFrame);
+                logger.LogTrace("RunReplay - Reset interaction. Pause frame {frame}.", pausedFrame);
 
                 forceReset = false;
 
                 enumerator = User_Records.GetEnumerator();
                 currentFrame = -1;
                 recordedElapsed = null;
-                position = null;
+                //position = null;
 
                 pausedFrame = null;
             }
 
             var currentElapsed = (long)((stopwatch.ElapsedMilliseconds - replayStartTime.Value) * rate);
+            logger.LogTrace("RunReplay - new currentElapsed:{currentElapsed} - recordedElapsed: {recordedElapsed}", currentElapsed, recordedElapsed);
 
             try
             {
                 while (!recordedElapsed.HasValue || currentElapsed > recordedElapsed)
                 {
-                    logger.LogTrace("Move next {currentElapsed}", currentElapsed);
+                    logger.LogTrace("RunReplay - Calculate recordedElapsed - Move next {currentElapsed}", currentElapsed);
                     var canMove = enumerator.MoveNext();
 
                     if (canMove)
@@ -599,15 +602,16 @@ public class ReplayLogic : IReplayLogic, IDisposable
                         currentFrame++;
                         (var recordedMilliseconds, var recordedPosition) = enumerator.Current;
                         lastElapsed = recordedElapsed;
-                        lastPosition = position;
+                        //lastPosition = position;
                         recordedElapsed = recordedMilliseconds - startMilliseconds;
-                        position = recordedPosition;
+                        //position = recordedPosition;
 
                         // Try to check the velocity
                     }
                     else
                     {
                         // Last frame
+                        logger.LogTrace("RunReplay - Last frame");
                         FinishReplay(true);
                         return;
                     }
@@ -615,12 +619,16 @@ public class ReplayLogic : IReplayLogic, IDisposable
             }
             finally
             {
-                logger.LogTrace("Current Frame {currentFrame} {ellapsed}", currentFrame, currentElapsed);
+                logger.LogTrace("RunReplay - finally - Current Frame {currentFrame} {ellapsed}", currentFrame, currentElapsed);
                 CurrentFrameChanged?.Invoke(this, new(currentFrame));
             }
 
+            logger.LogTrace("RunReplay - before moving aircrafts {recordedElapsed} ", recordedElapsed);
+
             if (recordedElapsed.HasValue)
             {
+                logger.LogTrace("RunReplay - moving aircrafts {currentFrame} ", currentFrame);
+
                 int i = 0;
                 foreach (var avion in aiId)
                 {
@@ -629,21 +637,20 @@ public class ReplayLogic : IReplayLogic, IDisposable
                         //MoveAircraft((uint)avion, recordedElapsed.Value, Records[i][currentFrame].position, lastElapsed, lastPosition, currentElapsed);
                         MoveAircraft((uint)avion, recordedElapsed.Value, Records[i][currentFrame].position, null, null, 0);
                     }
-                        
-
-                   
 
                     ++i;
                 }
 
                 
             }
+
+            logger.LogTrace("RunReplay - after moving aircrafts {currentFrame} ", currentFrame);
         }
     }
 
     private void FinishReplay(bool reachedLastFrame)
     {
-        logger.LogInformation("Replay finished.");
+        logger.LogInformation("RunReplay - Replay finished.");
 
         isReplayStopping = false;
 
@@ -708,15 +715,29 @@ public class ReplayLogic : IReplayLogic, IDisposable
 
     }
 
+    private AircraftPositionSetStruct convert(AircraftPositionStruct entree)
+    {
+        AircraftPositionSetStruct sortie = new AircraftPositionSetStruct { AileronPosition = entree.AileronPosition, AileronTrimPercent = entree.AileronTrimPercent, Altitude = entree.Altitude, Bank = entree.Bank, BrakeLeftPosition = entree.BrakeLeftPosition, BrakeRightPosition = entree.BrakeRightPosition, ElevatorPosition = entree.ElevatorPosition, ElevatorTrimPosition = entree.ElevatorTrimPosition, FlapsHandleIndex = entree.FlapsHandleIndex, GearHandlePosition = entree.GearHandlePosition, GyroHeading = entree.GyroHeading, Latitude = entree.Latitude, LeadingEdgeFlapsLeftPercent = entree.LeadingEdgeFlapsLeftPercent, LeadingEdgeFlapsRightPercent = entree.LeadingEdgeFlapsRightPercent, Longitude = entree.Longitude, MagneticHeading = entree.MagneticHeading, Pitch = entree.Pitch, PropellerLeverPosition1 = entree.PropellerLeverPosition1, PropellerLeverPosition2 = entree.PropellerLeverPosition2, PropellerLeverPosition3 = entree.PropellerLeverPosition3, PropellerLeverPosition4 = entree.PropellerLeverPosition4, RudderPosition = entree.RudderPosition, RudderTrimPercent = entree.RudderTrimPercent, SpoilerHandlePosition = entree.SpoilerHandlePosition, ThrottleLeverPosition1 = entree.ThrottleLeverPosition1, ThrottleLeverPosition2 = entree.ThrottleLeverPosition2, ThrottleLeverPosition3 = entree.ThrottleLeverPosition3, ThrottleLeverPosition4 = entree.ThrottleLeverPosition4, TrailingEdgeFlapsLeftPercent = entree.TrailingEdgeFlapsLeftPercent, TrailingEdgeFlapsRightPercent = entree.TrailingEdgeFlapsRightPercent, TrueHeading = entree.TrueHeading, VelocityBodyX = entree.VelocityBodyX, VelocityBodyY = entree.VelocityBodyY, VelocityBodyZ = entree.VelocityBodyZ, WaterRudderHandlePosition = entree.WaterRudderHandlePosition };
+
+        return sortie;
+    }
     private void MoveAircraft(uint dwObjectId, long nextElapsed, AircraftPositionStruct? position, long? lastElapsed, AircraftPositionStruct? lastPosition, long currentElapsed)
     {
-        logger.LogTrace("Delta time {delta} {current} {recorded}.", currentElapsed - nextElapsed, currentElapsed, nextElapsed);
+        logger.LogTrace("MoveAircraft - 1 Delta time {dwObjectId} {delta} {current} {recorded}.", dwObjectId, currentElapsed - nextElapsed, currentElapsed, nextElapsed);
 
         if (position == null)
-            position = default;
+            return;
+            
 
+        logger.LogTrace("MoveAircraft - 1b {dwObjectId}.", dwObjectId);
+
+        var nextValue = convert ((AircraftPositionStruct) position);
+
+        /*
         var nextValue = AircraftPositionStructOperator.ToSet((AircraftPositionStruct)position);
-        
+
+        logger.LogTrace("MoveAircraft - 1a {dwObjectId}.", dwObjectId);
+
         if (lastPosition.HasValue && lastElapsed.HasValue)
         {
             var interpolation = (double)(currentElapsed - lastElapsed.Value) / (nextElapsed - lastElapsed.Value);
@@ -727,7 +748,10 @@ public class ReplayLogic : IReplayLogic, IDisposable
             }
             nextValue = AircraftPositionStructOperator.Interpolate(nextValue, AircraftPositionStructOperator.ToSet(lastPosition.Value), interpolation);
         }
-        
+        */
+
+        logger.LogTrace("MoveAircraft - 2 {dwObjectId}.", dwObjectId);
+
         if ((dwObjectId != UserArcraftID) && currentPosition.HasValue && (lastTriggeredMilliseconds == null || stopwatch.ElapsedMilliseconds > lastTriggeredMilliseconds + EventThrottleMilliseconds))
         {
             lastTriggeredMilliseconds = stopwatch.ElapsedMilliseconds;
@@ -736,6 +760,7 @@ public class ReplayLogic : IReplayLogic, IDisposable
         
 
         connector.Set(dwObjectId, nextValue);
+        logger.LogTrace("MoveAircraft - 3 {dwObjectId}.", dwObjectId);
     }
 
     private void Tick()

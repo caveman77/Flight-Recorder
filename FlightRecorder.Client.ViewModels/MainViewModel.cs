@@ -71,6 +71,7 @@ namespace FlightRecorder.Client
         private void RegisterEvents()
         {
             recorderLogic.RecordsUpdated += RecordsUpdated;
+            recorderLogic.AircraftUpdated += AircraftUpdated;
             replayLogic.RecordsUpdated += RecordsUpdated;
             replayLogic.CurrentFrameChanged += CurrentFrameChanged;
             connector.SimStateUpdated += SimStateUpdated;
@@ -79,6 +80,7 @@ namespace FlightRecorder.Client
         private void DeregisterEvents()
         {
             recorderLogic.RecordsUpdated -= RecordsUpdated;
+            recorderLogic.AircraftUpdated -= AircraftUpdated;
             replayLogic.RecordsUpdated -= RecordsUpdated;
             replayLogic.CurrentFrameChanged -= CurrentFrameChanged;
             connector.SimStateUpdated -= SimStateUpdated;
@@ -91,6 +93,16 @@ namespace FlightRecorder.Client
                 FileName = e.FileName;
                 AircraftTitle = e.AircraftTitle;
                 FrameCount = e.RecordCount;
+            });
+        }
+
+        private void AircraftUpdated(object? sender, RecordsUpdatedEventArgs e)
+        {
+            threadLogic.RunInUIThread(() =>
+            {
+                FileName = e.FileName;
+                AircraftTitle = e.AircraftTitle;
+                AircraftCount = e.RecordCount;
             });
         }
 
@@ -131,6 +143,9 @@ namespace FlightRecorder.Client
 
         private int frameCount;
         public int FrameCount { get => frameCount; set => SetProperty(ref frameCount, value); }
+
+        private int aircraftCount;
+        public int AircraftCount { get => aircraftCount; set => SetProperty(ref aircraftCount, value); }
 
         private int currentFrame;
         public int CurrentFrame { get => currentFrame; set => SetProperty(ref currentFrame, value); }
