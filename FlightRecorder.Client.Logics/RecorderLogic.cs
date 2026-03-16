@@ -144,15 +144,22 @@ public class RecorderLogic : IRecorderLogic, IDisposable
 
         List<List<SavedRecord>> records_reorganised = new List<List<SavedRecord>>();
         List<List<AircraftStatus>> minutes_reorganised = new List<List<AircraftStatus>>();
+        List<(int startindex, int stopindex)> Index_range = new List<(int startindex, int stopindex)>();
+
 
         foreach (var aircrafto in listAircraft)
         {
             uint aircraft = aircrafto.objectID;
             List<SavedRecord> singleAircraftRecord = new List<SavedRecord>();
             List<AircraftStatus> singleAircraftStatus = new List<AircraftStatus>();
+            int newstartshift = -1;
+            int newstopshift = - 1;
 
             if (aircraft == userAircraftObjectID)
             {
+                newstartshift = 0;
+                newstopshift = listPositionUserAircraft.Count -1;
+
                 if ((listPositionUserAircraft.Count > 0) && (listStatusUserAircraft.Count > 0))
                 {
                     for (int indexer = 0; indexer < listPositionUserAircraft.Count; indexer++)
@@ -194,31 +201,30 @@ public class RecorderLogic : IRecorderLogic, IDisposable
 
                 // We start with the user airfact
                 //singleAircraftRecord = listPositionUserAircraft.Any() ? listPositionUserAircraft : new List<AircraftRecord>();
-                int startshift = 0;
 
-                // Taking the assumption that we receive all frames for all aircrafts, the AI one is just a shift in time                
-                for (int indexer=0; indexer< listPositionUserAircraft.Count;indexer++)
+                newstartshift = listPositionUserAircraft.FindIndex(o => o.milliseconds >= firsthappearance);
+                newstopshift = newstartshift + listPositionAIAircraft.Count - 1;
+
+
+                // Taking the assumption that we receive all frames for all aircrafts, the AI one is just a shift in time
+                // 
+                double last_longitude = 0;
+                double last_latitude = 0;
+
+                for (int indexer=0; indexer< listPositionAIAircraft.Count;indexer++)
                 {
                     
-                    long Time = listPositionUserAircraft[indexer].milliseconds;
+                    long Time = listPositionUserAircraft[indexer + newstartshift].milliseconds;
                     AircraftPosition? Position = null;
 
-                    if ((startshift == 0) && (listPositionUserAircraft[indexer].milliseconds >= firsthappearance))
-                        startshift = indexer;
-
-                    int indexAI = indexer - startshift;
                     //logger.LogError("tt {indexer} {startshift} {Count} {Count2}", indexer, startshift, listPositionAIAircraft.Count, singleAircraftRecord.Count);
-                    if ((startshift == 0) || (indexAI  >= listPositionAIAircraft.Count) || (listPositionAIAircraft[indexAI].position == null))
-                    {
-                        Position = null;
-                    }
+                    //singleAircraftRecord[indexer].position = listPositionAIAircraft[indexer + startshift].position;
+                    if ((indexer!=0) || (listPositionAIAircraft[indexer].position.Value.Latitude != last_latitude) || (listPositionAIAircraft[indexer].position.Value.Longitude != last_longitude))
+                        Position = AircraftPosition.FromStruct((AircraftPositionStruct)listPositionAIAircraft[indexer].position);
                     else
-                    {
-                        //logger.LogError("tt {indexer} {startshift} {Count} {Count2}", indexer, startshift, listPositionAIAircraft.Count, singleAircraftRecord.Count);
-                        //singleAircraftRecord[indexer].position = listPositionAIAircraft[indexer + startshift].position;
-                        Position = AircraftPosition.FromStruct((AircraftPositionStruct)listPositionAIAircraft[indexAI].position);
-                        
-                    }
+                        Position = null;
+
+                        // To be done compare with previous value of AircraftPositionStruct and set to null
 
                     SavedRecord record2 = new SavedRecord(Time, Position);
                     singleAircraftRecord.Add(record2);
@@ -255,6 +261,8 @@ public class RecorderLogic : IRecorderLogic, IDisposable
 
             }
 
+            Index_range.Add((newstartshift, newstopshift));
+
             records_reorganised.Add(singleAircraftRecord);
             minutes_reorganised.Add(singleAircraftStatus);
 
@@ -262,7 +270,7 @@ public class RecorderLogic : IRecorderLogic, IDisposable
 
         await Task.Yield();
 
-        SavedData outcome = new SavedData(clientVersion, startMilliseconds.Value, endMilliseconds.Value, startState, userAircraftObjectID, listAircraft, records_reorganised, minutes_reorganised);
+        SavedData outcome = new SavedData(clientVersion, startMilliseconds.Value, endMilliseconds.Value, startState, userAircraftObjectID, listAircraft, records_reorganised, minutes_reorganised, Index_range);
         return outcome;
     }
     

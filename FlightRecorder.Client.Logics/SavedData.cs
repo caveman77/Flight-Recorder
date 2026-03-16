@@ -74,7 +74,7 @@ public class SavedData
 
 
     // Aircrafts are order the same way on the different lists
-    public SavedData(string clientVersion, long startTime, long endTime, SimStateStruct? simState, uint userArcraftID, List<AircraftWithObjectID> aircraftList, List<List<SavedRecord>> records_reorganised, List<List<AircraftStatus>> minutes_reoganised)
+    public SavedData(string clientVersion, long startTime, long endTime, SimStateStruct? simState, uint userArcraftID, List<AircraftWithObjectID> aircraftList, List<List<SavedRecord>> records_reorganised, List<List<AircraftStatus>> minutes_reoganised, List<(int startindex, int stopindex)> index_range)
     {
         ClientVersion = clientVersion;
         StartTime = startTime;
@@ -85,11 +85,11 @@ public class SavedData
         Records = records_reorganised;
         Minute_status = minutes_reoganised;
         UserArcraftID = userArcraftID;
-
+        Index_range = index_range;
     }
 
     [JsonConstructor]
-    public SavedData(string clientVersion, long startTime, long endTime, SimState? startState, uint userArcraftID, List<AircraftWithObjectID> aircraftList, List<List<SavedRecord>>? records, List<List<AircraftStatus>>? minute_status)
+    public SavedData(string clientVersion, long startTime, long endTime, SimState? startState, uint userArcraftID, List<AircraftWithObjectID> aircraftList, List<List<SavedRecord>>? records, List<List<AircraftStatus>>? minute_status, List<(int startindex, int stopindex)> index_range)
     {
         ClientVersion = clientVersion;
         StartTime = startTime;
@@ -99,6 +99,7 @@ public class SavedData
         AircraftList = aircraftList;
         Minute_status = minute_status;
         UserArcraftID = userArcraftID;
+        Index_range = index_range;
     }
 
     public string ClientVersion { get; set; }
@@ -112,6 +113,10 @@ public class SavedData
     public List<List<SavedRecord>>? Records { get; set; }
 
     public List<List<AircraftStatus>>? Minute_status { get; set; }
+
+    // Store the start and stop of an AI aircraft based on user index (which is full)
+    public List<(int startindex, int stopindex)> Index_range { get; set; }
+
 
     public class SavedRecord
     {

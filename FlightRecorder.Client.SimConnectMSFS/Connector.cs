@@ -382,7 +382,7 @@ public partial class Connector : IConnector
 
     private void Simconnect_OnRecvEventFrame(SimConnect sender, SIMCONNECT_RECV_EVENT_FRAME data)
     {
-        logger.LogDebug("Frame: {simSpeed} {frameRate}", data.fSimSpeed, data.fFrameRate);
+        logger.LogTrace("Frame: {simSpeed} {frameRate}", data.fSimSpeed, data.fFrameRate);
         Frame?.Invoke(this, new EventArgs());
     }
 

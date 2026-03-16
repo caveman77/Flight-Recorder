@@ -92,6 +92,9 @@ public class ReplayLogic : IReplayLogic, IDisposable
     private List<uint?> aiId = new();
     // private Timer timer;
 
+    // Per aircraft start end stop index based on user aircraft. Out of this range the aircraft is not known
+    public List<(int startindex, int stopindex)> Index_range { get; set; }
+
     private AircraftPositionStruct defaultPosition = new AircraftPositionStruct
     {
         AIBank = 28.999999999999993,
@@ -179,8 +182,12 @@ public class ReplayLogic : IReplayLogic, IDisposable
             int i = 0;
             foreach (var aircraftposlist in Records)
             {
-                
-                var currentPosition = aircraftposlist[currentFrame].position;
+                AircraftPositionStruct? currentPosition = new AircraftPositionStruct?();
+
+                if ((Index_range[i].startindex <= currentFrame) && (Index_range[i].stopindex >= currentFrame))
+                    currentPosition = aircraftposlist[currentFrame - Index_range[i].startindex].position;
+
+                // Would need to search for previous frames to see if the planed didn't moved
                 if (currentPosition == null)
                     currentPosition = defaultPosition;
                 
@@ -419,7 +426,10 @@ public class ReplayLogic : IReplayLogic, IDisposable
 
         AircraftList = data.AircraftList;
         UserArcraftID = data.UserArcraftID;
+        Index_range = data.Index_range;
+
         Reset();
+        
 
         Records = new List<List<(long milliseconds, AircraftPositionStruct? position)>>();
         User_Records = new List<(long milliseconds, AircraftPositionStruct position)>();
@@ -632,10 +642,16 @@ public class ReplayLogic : IReplayLogic, IDisposable
                 int i = 0;
                 foreach (var avion in aiId)
                 {
-                    if (avion!=null)
+                    if (avion != null)
                     {
-                        //MoveAircraft((uint)avion, recordedElapsed.Value, Records[i][currentFrame].position, lastElapsed, lastPosition, currentElapsed);
-                        MoveAircraft((uint)avion, recordedElapsed.Value, Records[i][currentFrame].position, null, null, 0);
+                        if ((Index_range[i].startindex <= currentFrame) && (Index_range[i].stopindex >= currentFrame))
+                                MoveAircraft((uint)avion, recordedElapsed.Value, Records[i][currentFrame - Index_range[i].startindex].position, null, null, 0);
+
+                        if (Index_range[i].stopindex +1 == currentFrame)
+                        {
+                            // would need to despawn aircraft when last index
+                            MoveAircraft((uint)avion, recordedElapsed.Value, defaultPosition, null, null, 0);
+                        }
                     }
 
                     ++i;
