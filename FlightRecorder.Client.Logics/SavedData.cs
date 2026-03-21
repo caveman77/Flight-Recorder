@@ -66,9 +66,9 @@ public class SavedData
 {
 
     // Aircrafts are order the same way on the different lists
-    public SavedData(string clientVersion,  UserAircraft userAircraft, List<AiAircraft> aiAircraftList )
+    public SavedData(string ClientVersion,  UserAircraft userAircraft, List<AiAircraft> aiAircraftList )
     {
-        ClientVersion = clientVersion;
+        this.ClientVersion = ClientVersion;
 
         // Convert AI aircrafts
         AiAircraftList = new List<AiAircraftForSave>();
@@ -128,11 +128,11 @@ public class SavedData
     */
 
     [JsonConstructor]
-    public SavedData(string clientVersion, UserAircraftForSave userArcraft, List<AiAircraftForSave> aircraftList )
+    public SavedData(string ClientVersion, UserAircraftForSave UserArcraft, List<AiAircraftForSave> AiAircraftList)
     {
-        ClientVersion = clientVersion;
-        UserArcraft = userArcraft;
-        AiAircraftList = aircraftList;
+        this.ClientVersion = ClientVersion;
+        this.UserArcraft = UserArcraft;
+        this.AiAircraftList = AiAircraftList;
     }
 
     public string ClientVersion { get; set; }
@@ -145,13 +145,13 @@ public class SavedData
     public class UserAircraftForSave
     {
         [JsonConstructor]
-        public UserAircraftForSave(uint userArcraftID, SimState? simState, List<SavedRecord>? records, long startTime, long endTime)
+        public UserAircraftForSave(uint UserArcraftID, SimState? SimState, List<SavedRecord>? Records, long StartTime, long EndTime)
         {
-            UserArcraftID = userArcraftID;
-            SimState = simState;
-            Records = records;
-            StartTime = startTime;
-            EndTime = endTime;
+            this.UserArcraftID = UserArcraftID;
+            this.SimState = SimState;
+            this.Records = Records;
+            this.StartTime = StartTime;
+            this.EndTime = EndTime;
         }
 
         public UserAircraftForSave() { }
@@ -165,14 +165,14 @@ public class SavedData
     public class AiAircraftForSave
     {
         [JsonConstructor]
-        public AiAircraftForSave(uint objectID, SimState? aircraftStatus, List<AiSavedRecord>? records, List<AircraftStatus>? minutes, int startIndex, int stopIndex)
+        public AiAircraftForSave(uint objectID, SimState? AircraftStatus, List<AiSavedRecord>? Records, List<AircraftStatus>? Minutes, int StartIndex, int StopIndex)
         {
             this.objectID = objectID;
-            AircraftStatus = aircraftStatus;
-            Records = records;
-            Minutes = minutes;
-            StartIndex = startIndex;
-            StopIndex = stopIndex;
+            this.AircraftStatus = AircraftStatus;
+            this.Records = Records;
+            this.Minutes = Minutes;
+            this.StartIndex = StartIndex;
+            this.StopIndex = StopIndex;
         }
 
         public AiAircraftForSave () { }
@@ -188,10 +188,10 @@ public class SavedData
     public class SavedRecord
     {
         [JsonConstructor]
-        public SavedRecord(long time, AircraftPosition? position)
+        public SavedRecord(long Time, AircraftPosition? Position)
         {
-            Time = time;
-            Position = position;
+            this.Time = Time;
+            this.Position = Position;
         }
 
         public long Time { get; set; }
@@ -201,10 +201,10 @@ public class SavedData
     public class AiSavedRecord
     {
         [JsonConstructor]
-        public AiSavedRecord(long time, AiAircraftPosition? position)
+        public AiSavedRecord(long Time, AiAircraftPosition? Position)
         {
-            Time = time;
-            Position = position;
+            this.Time = Time;
+            this.Position = Position;
         }
 
         public long Time { get; set; }
