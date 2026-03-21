@@ -73,6 +73,7 @@ public partial class Connector : IConnector
         RegisterAircraftPositionDefinition();
         RegisterAiAircraftPositionDefinition();
         RegisterAircraftPositionSetDefinition();
+        RegisterAiAircraftPositionSetDefinition();
         simconnect.AddToDataDefinition(DEFINITIONS.AircraftPositionInitial, "Initial Position", null, SIMCONNECT_DATATYPE.INITPOSITION, 0.0f, SimConnect.SIMCONNECT_UNUSED);
 
         simconnect.OnRecvEventFrame += Simconnect_OnRecvEventFrame;

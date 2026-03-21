@@ -624,7 +624,7 @@ public class ReplayLogic : IReplayLogic, IDisposable
             {
                 logger.LogTrace("RunReplay - moving aircrafts {currentFrame} ", currentFrame);
                 MoveAircraft((uint)UserAircraft.UserArcraftID, recordedElapsed.Value, UserAircraft.Records[currentFrame].position, null, null, 0);
-
+                
                 int i = 0;
                 foreach (var avion in AiAircraftList)
                 {
@@ -642,8 +642,8 @@ public class ReplayLogic : IReplayLogic, IDisposable
 
                     ++i;
                 }
-
                 
+
             }
 
             logger.LogTrace("RunReplay - after moving aircrafts {currentFrame} ", currentFrame);
