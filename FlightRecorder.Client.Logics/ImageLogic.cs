@@ -32,7 +32,7 @@ public class ImageLogic
         cachedFrames = null;
     }
 
-    public Image<Rgba32>? Draw(int width, int height, List<(long milliseconds, AircraftPositionStruct position)> records, int currentFrame)
+    public Image<Rgba32>? Draw(int width, int height, List<AircraftRecord> records, int currentFrame)
     {
         logger.LogTrace("Generate chart {frame}", currentFrame);
 
@@ -91,16 +91,16 @@ public class ImageLogic
         }
     }
 
-    private (List<int>, List<(Color color, List<PointF> points)>) ExtractFrame(List<(long milliseconds, AircraftPositionStruct position)> records, int width, int height)
+    private (List<int>, List<(Color color, List<PointF> points)>) ExtractFrame(List<AircraftRecord> records, int width, int height)
     {
         var lines = new List<(Color color, List<PointF> points)>();
         var frames = new List<int>();
 
-        if (records.Count > 0)
+        if ((records != null) && (records.Count > 0))
         {
             var data = records.ToArray();
-            var min = data.Min(item => item.position.Altitude);
-            var max = data.Max(item => item.position.Altitude);
+            var min = data.Min(item => item.position.Value.Altitude);
+            var max = data.Max(item => item.position.Value.Altitude);
             var startTime = data.Min(item => item.milliseconds);
             var endTime = data.Max(item => item.milliseconds);
 
@@ -118,10 +118,12 @@ public class ImageLogic
                     {
                         dataIndex++;
                     }
-                    var (milliseconds, position) = data[dataIndex];
 
-                    var altitude = position.Altitude;
-                    var color = position.IsOnGround == 0 ? Color.Blue : Color.Brown;
+                    var milliseconds = data[dataIndex].milliseconds;    
+                    var position = data[dataIndex].position;
+
+                    var altitude = position.Value.Altitude;
+                    var color = position.Value.IsOnGround == 0 ? Color.Blue : Color.Brown;
 
                     if (color != lastColor)
                     {

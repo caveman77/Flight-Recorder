@@ -9,10 +9,12 @@ public interface IReplayLogic
     event EventHandler ReplayFinished;
     event EventHandler<CurrentFrameChangedEventArgs> CurrentFrameChanged;
 
+    public UserAircraft UserAircraft { get; }
+    /*
     public List<List<(long milliseconds, AircraftPositionStruct? position)>> Records { get; }
 
     public List<(long milliseconds, AircraftPositionStruct position)> User_Records { get; }
-
+    */
     bool IsReplayable { get; }
 
     bool Replay();
@@ -25,7 +27,7 @@ public interface IReplayLogic
     void ChangeRate(double rate);
     void SetRepeat(bool repeat);
     void Unfreeze();
-    void NotifyPosition(AircraftPositionStruct? value);
+    //void NotifyPosition(AircraftPositionStruct? value);
 
     void FromData(string? fileName, SavedData data);
     //SavedData ToData(string clientVersion);

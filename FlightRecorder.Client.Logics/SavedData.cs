@@ -6,11 +6,17 @@ using Microsoft.Extensions.Logging;
 
 namespace FlightRecorder.Client.Logics;
 
-// Store an aircraft frame
+// --- Oject models for Replay Logic
 public class AircraftRecord
 {
     public long milliseconds;
     public AircraftPositionStruct? position;
+}
+
+public class AiAircraftRecord
+{
+    public long milliseconds;
+    public AiAircraftPositionStruct? position;
 }
 
 
@@ -22,59 +28,82 @@ public class AircraftStatus
 
 }
 
-public class AircraftWithObjectID
+
+
+public class UserAircraft
 {
-    public uint objectID;
-    public required SimStateStruct aircraftStatus;
+    public uint UserArcraftID;
+    public SimStateStruct? SimState;
+    public List<AircraftRecord>? Records;
+    public long StartTime;
+    public long EndTime;
+}
+public class AiAircraft
+{
+    public uint ObjectID;              // Store the aircraft object ID at recording time
+    public SimStateStruct? AircraftStatus;
+    public List<AiAircraftRecord>? Records;
+    public List<AircraftStatus>? Minutes;
+    public int StartIndex;
+    public int StopIndex;
+
+    public uint? aiRequestId;       // Store the Request for aircraft spawn
+    public uint? aiId;              // Store the Aircraft Object ID upon replay
+
 }
 
+// --- Oject models for Save logic
 public class SavedData
 {
 
     // Aircrafts are order the same way on the different lists
-    public SavedData(string clientVersion, long startTime, long endTime, SimStateStruct? simState, uint userArcraftID, List<AircraftWithObjectID> aircraftList, List<List<AircraftRecord>> records_reorganised, List<List<AircraftStatus>> minutes_reoganised )
+    public SavedData(string clientVersion,  UserAircraft userAircraft, List<AiAircraft> aiAircraftList )
     {
         ClientVersion = clientVersion;
-        StartTime = startTime;
-        EndTime = endTime;
-        StartState = simState.HasValue ? SimState.FromStruct(simState.Value) : null;
 
-        AircraftList = new List<AircraftWithObjectID>();
-        Records = new List<List<SavedRecord>>();
-        Minute_status = new List<List<AircraftStatus>>();
-        UserArcraftID = userArcraftID;
-
+        // Convert AI aircrafts
+        AiAircraftList = new List<AiAircraftForSave>();
         int i = 0;
-        foreach (List<AircraftRecord> aircraftListrec in records_reorganised)
-        { 
-            
-            if (aircraftListrec.Count > 0)
+        foreach (var aircraft in aiAircraftList)
+        {
+            if ((aircraft.Records != null) && (aircraft.Records.Count > 0))
             {
-                List< SavedRecord > mylist = new List< SavedRecord >();
+                List<AiSavedRecord> mylist = new List<AiSavedRecord>();
                 
-                for (int j = 0; j < aircraftListrec.Count; j++) 
+                for (int j = 0; j < aircraft.Records.Count; j++) 
                 {
-
-                    var toto4 = new SavedRecord(aircraftListrec[j].milliseconds, aircraftListrec[j].position != null ? AircraftPosition.FromStruct((AircraftPositionStruct)aircraftListrec[j].position) : null);
+                    var toto4 = new AiSavedRecord(aircraft.Records[j].milliseconds, aircraft.Records[j].position != null ? AiAircraftPosition.FromStruct((AiAircraftPositionStruct)aircraft.Records[j].position) : null);
                     mylist.Add(toto4);
-
                 }
 
-                Records.Add(mylist);
+                SimState? lstate = aircraft.AircraftStatus == null ? null : SimState.FromStruct((SimStateStruct)aircraft.AircraftStatus);
 
-                Minute_status.Add(minutes_reoganised[i]);
-                AircraftList.Add(aircraftList[i]);
+                AiAircraftForSave myAiForSave = new AiAircraftForSave {  objectID = aircraft.ObjectID, Records = mylist, Minutes = aircraft.Minutes, StartIndex = aircraft.StartIndex, StopIndex = aircraft.StopIndex,  AircraftStatus = lstate };
+                AiAircraftList.Add(myAiForSave);
             }
 
             i++;
-
         }
+
+        // Convert User Aircraft
+        List<SavedRecord> mylist2 = new List<SavedRecord>();
+        if ((userAircraft.Records != null) && (userAircraft.Records.Count > 0))
+        {
+            for (int j = 0; j < userAircraft.Records.Count; j++)
+            {
+                var toto4 = new SavedRecord(userAircraft.Records[j].milliseconds, userAircraft.Records[j].position != null ? AircraftPosition.FromStruct((AircraftPositionStruct)userAircraft.Records[j].position) : null);
+                mylist2.Add(toto4);
+            }
+        }
+        
+        SimState? uStartState = userAircraft.SimState.HasValue ? SimState.FromStruct(userAircraft.SimState.Value) : null;
+
+        UserArcraft = new UserAircraftForSave { UserArcraftID = userAircraft.UserArcraftID, StartTime = userAircraft.StartTime, SimState = uStartState, Records = mylist2, EndTime = userAircraft.EndTime };
     }
 
 
-
-    // Aircrafts are order the same way on the different lists
-    public SavedData(string clientVersion, long startTime, long endTime, SimStateStruct? simState, uint userArcraftID, List<AircraftWithObjectID> aircraftList, List<List<SavedRecord>> records_reorganised, List<List<AircraftStatus>> minutes_reoganised, List<(int startindex, int stopindex)> index_range)
+    /*
+    public SavedData(string clientVersion,  SimStateStruct? simState, UserAircraftForSave userArcraft, List<AiAircraftForSave> aircraftList)
     {
         ClientVersion = clientVersion;
         StartTime = startTime;
@@ -87,36 +116,40 @@ public class SavedData
         UserArcraftID = userArcraftID;
         Index_range = index_range;
     }
+    */
 
     [JsonConstructor]
-    public SavedData(string clientVersion, long startTime, long endTime, SimState? startState, uint userArcraftID, List<AircraftWithObjectID> aircraftList, List<List<SavedRecord>>? records, List<List<AircraftStatus>>? minute_status, List<(int startindex, int stopindex)> index_range)
+    public SavedData(string clientVersion, UserAircraftForSave userArcraft, List<AiAircraftForSave> aircraftList )
     {
         ClientVersion = clientVersion;
-        StartTime = startTime;
-        EndTime = endTime;
-        StartState = startState;
-        Records = records ?? new List<List<SavedRecord>>();
-        AircraftList = aircraftList;
-        Minute_status = minute_status;
-        UserArcraftID = userArcraftID;
-        Index_range = index_range;
+        UserArcraft = userArcraft;
+        AiAircraftList = aircraftList;
     }
 
     public string ClientVersion { get; set; }
-    public long StartTime { get; set; }
-    public long EndTime { get; set; }
-    public SimState? StartState { get; set; }
 
-    public uint UserArcraftID { get; set; }
+    public UserAircraftForSave UserArcraft { get; set; }
 
-    public List<AircraftWithObjectID> AircraftList { get; set; }
-    public List<List<SavedRecord>>? Records { get; set; }
+    public List<AiAircraftForSave> AiAircraftList { get; set; }
 
-    public List<List<AircraftStatus>>? Minute_status { get; set; }
 
-    // Store the start and stop of an AI aircraft based on user index (which is full)
-    public List<(int startindex, int stopindex)> Index_range { get; set; }
-
+    public class UserAircraftForSave
+    {
+        public uint UserArcraftID;
+        public SimState? SimState;
+        public List<SavedRecord>? Records;
+        public long StartTime;
+        public long EndTime;
+    }
+    public class AiAircraftForSave
+    {
+        public uint objectID;
+        public SimState? AircraftStatus;
+        public List<AiSavedRecord>? Records;
+        public List<AircraftStatus>? Minutes;
+        public int StartIndex;
+        public int StopIndex;
+    }
 
     public class SavedRecord
     {
@@ -128,5 +161,17 @@ public class SavedData
 
         public long Time { get; set; }
         public AircraftPosition? Position { get; set; }
+    }
+
+    public class AiSavedRecord
+    {
+        public AiSavedRecord(long time, AiAircraftPosition? position)
+        {
+            Time = time;
+            Position = position;
+        }
+
+        public long Time { get; set; }
+        public AiAircraftPosition? Position { get; set; }
     }
 }

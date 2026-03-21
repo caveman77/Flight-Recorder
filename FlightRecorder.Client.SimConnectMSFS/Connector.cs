@@ -14,6 +14,7 @@ public partial class Connector : IConnector
 
     public event EventHandler<SimStateUpdatedEventArgs>? SimStateUpdated;
     public event EventHandler<AircraftPositionUpdatedEventArgs>? AircraftPositionUpdated;
+    public event EventHandler<AiAircraftPositionUpdatedEventArgs>? AiAircraftPositionUpdated;
     public event EventHandler<SimStateUpdatedEventArgs> SorroundingAircraftUpdate;      // Sending event around sourrounding aircraft
     public event EventHandler? Initialized;
     public event EventHandler? Frame;
@@ -70,6 +71,7 @@ public partial class Connector : IConnector
 
         RegisterSimStateDefinition();
         RegisterAircraftPositionDefinition();
+        RegisterAiAircraftPositionDefinition();
         RegisterAircraftPositionSetDefinition();
         simconnect.AddToDataDefinition(DEFINITIONS.AircraftPositionInitial, "Initial Position", null, SIMCONNECT_DATATYPE.INITPOSITION, 0.0f, SimConnect.SIMCONNECT_UNUSED);
 
@@ -133,7 +135,28 @@ public partial class Connector : IConnector
         }
     }
 
-    public uint Spawn(string aircraftTitle, AircraftPositionStruct position)
+    public void Init(uint aircraftId, AiAircraftPositionStruct position)
+    {
+        lock (lockObj)
+        {
+            logger.LogDebug("Set initial position");
+            simconnect?.SetDataOnSimObject(DEFINITIONS.AircraftPositionInitial, aircraftId, SIMCONNECT_DATA_SET_FLAG.DEFAULT,
+                new SIMCONNECT_DATA_INITPOSITION
+                {
+                    Latitude = position.Latitude,
+                    Longitude = position.Longitude,
+                    Altitude = position.Altitude,
+                    Pitch = position.Pitch,
+                    Bank = position.Bank,
+                    Heading = position.TrueHeading,
+                    OnGround = position.IsOnGround,
+                    Airspeed = 0
+                });
+        }
+    }
+
+
+    public uint Spawn(string aircraftTitle, AiAircraftPositionStruct position)
     {
         var requestID = DATA_REQUESTS.AI_SPAWN + requestCount;
         requestCount = (requestCount + 1) % 10000;
@@ -175,6 +198,15 @@ public partial class Connector : IConnector
         }
     }
 
+    public void Set(uint aircraftId, AiAircraftPositionSetStruct position)
+    {
+        lock (lockObj)
+        {
+            logger.LogTrace("Set Data on {id}", aircraftId);
+            simconnect?.SetDataOnSimObject(DEFINITIONS.AiAircraftPositionSet, aircraftId, SIMCONNECT_DATA_SET_FLAG.DEFAULT, position);
+        }
+    }
+
     private void ProcessSimState(uint dwObjectID, SimStateStruct state)
     {
         logger.LogTrace("Get SimState");
@@ -185,6 +217,12 @@ public partial class Connector : IConnector
     {
         logger.LogTrace("Get Aircraft status");
         AircraftPositionUpdated?.Invoke(this, new AircraftPositionUpdatedEventArgs(dwObjectID, position));
+    }
+
+    private void ProcessAiAircraftPosition(uint dwObjectID, AiAircraftPositionStruct position)
+    {
+        logger.LogTrace("Get AI Aircraft status");
+        AiAircraftPositionUpdated?.Invoke(this, new AiAircraftPositionUpdatedEventArgs(dwObjectID, position));
     }
 
     private void ProcessSourroundingAircraft(uint dwObjectID, SimStateStruct position)
@@ -200,14 +238,13 @@ public partial class Connector : IConnector
             SIMCONNECT_PERIOD.SECOND,
             SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT,
             0, 0, 0);
-        /* would provide twice the user aircraft
+        /* would provide twice the user aircraft */
         simconnect?.RequestDataOnSimObject(
             DATA_REQUESTS.AIRCRAFT_POSITION, DEFINITIONS.AircraftPosition, 0,
             SIMCONNECT_PERIOD.SIM_FRAME,
             SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT,
             0, 0, 0);
-        */
-        // 
+        
         StartTimer();
     }
 
@@ -322,11 +359,11 @@ public partial class Connector : IConnector
                 {
                     logger.LogTrace("SimConnect AI_POSITION");
 
-                    var position = data.dwData[0] as AircraftPositionStruct?;
+                    var position = data.dwData[0] as AiAircraftPositionStruct?;
                     if (position.HasValue)
                     {
-                        AircraftPositionStruct toto = (AircraftPositionStruct)position.Value;
-                        ProcessAircraftPosition(data.dwObjectID, position.Value);
+                        AiAircraftPositionStruct toto = (AiAircraftPositionStruct)position.Value;
+                        ProcessAiAircraftPosition(data.dwObjectID, position.Value);
                     }
 
                 }
@@ -354,7 +391,7 @@ public partial class Connector : IConnector
 
                         // Requesting position for a new set of frame. 
                         simconnect?.RequestDataOnSimObject(
-                            (DATA_REQUESTS) data.dwObjectID, DEFINITIONS.AircraftPosition, data.dwObjectID,
+                            (DATA_REQUESTS) data.dwObjectID, DEFINITIONS.AiAircraftPosition, data.dwObjectID,
                             SIMCONNECT_PERIOD.SIM_FRAME,
                             SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT,
                             0, 0, 100*60);

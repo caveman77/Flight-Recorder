@@ -18,11 +18,12 @@ namespace FlightRecorder.Client.Generators
             }
 #endif
         }
-
+        
         public void Execute(GeneratorExecutionContext context)
         {
             var simStateFields = GetSimConnectFields(context, SimState).ToList();
             var aircraftFields = GetSimConnectFields(context, AircraftPosition).ToList();
+            var aiaircraftFields = GetSimConnectFields(context, AiAircraftPosition).ToList();
 
             var builder = new StringBuilder();
             builder.Append(@"
@@ -120,10 +121,64 @@ namespace FlightRecorder.Client
             };
 ");
 
+
+
             builder.Append(@"
         public long Milliseconds { get; set; }");
 
             foreach ((var type, var name, _, _, _, _, _, _, _, var defaultField) in aircraftFields)
+            {
+                builder.Append($@"
+        public {CalculateType(type, defaultField)} {name} {{ get; set; }}");
+            }
+
+
+            builder.Append(@"
+    }
+
+    public partial class AiAircraftPosition
+    {");
+
+            builder.Append(@"
+        public static AiAircraftPosition FromStruct(AiAircraftPositionStruct s)
+            => new AiAircraftPosition
+            {");
+            foreach ((_, var name, _, _, _, _, _, _, _, _) in aiaircraftFields)
+            {
+                builder.Append($@"
+                {name} = s.{name},");
+            }
+            builder.Append(@"
+            };
+");
+
+            builder.Append(@"
+        public static AiAircraftPositionStruct ToStruct(AiAircraftPosition s)
+            => new AiAircraftPositionStruct
+            {");
+            foreach ((_, var name, _, _, _, _, _, _, _, var defaultField) in aiaircraftFields)
+            {
+
+                if (defaultField != null)
+                {
+                    builder.Append($@"
+                {name} = s.{name} ?? s.{defaultField},");
+                }
+                else
+                {
+                    builder.Append($@"
+                {name} = s.{name},");
+                }
+            }
+            builder.Append(@"
+            };
+");
+
+
+            builder.Append(@"
+        public long Milliseconds { get; set; }");
+
+            foreach ((var type, var name, _, _, _, _, _, _, _, var defaultField) in aiaircraftFields)
             {
                 builder.Append($@"
         public {CalculateType(type, defaultField)} {name} {{ get; set; }}");

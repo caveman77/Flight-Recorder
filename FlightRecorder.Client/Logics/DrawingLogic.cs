@@ -32,7 +32,7 @@ public class DrawingLogic
     }
 
     public void Draw(
-        List<(long milliseconds, AircraftPositionStruct position)> records,
+        List<AircraftRecord> records,
         Func<int> getCurrentFrame,
         StateMachine.State currentState,
         int width, int height,
@@ -53,7 +53,7 @@ public class DrawingLogic
     }
 
     private void DrawInternal(
-        List<(long milliseconds, AircraftPositionStruct position)> records,
+        List<AircraftRecord> records,
         int currentFrame, StateMachine.State currentState,
         int width, int height,
         Image imageControl

@@ -61,6 +61,7 @@ public partial class MainWindow : BaseWindow
         stateMachine.StateChanged += StateMachine_StateChanged;
 
         connector.AircraftPositionUpdated += Connector_AircraftPositionUpdated;
+        connector.AiAircraftPositionUpdated += Connector_AiAircraftPositionUpdated;
         connector.Closed += Connector_Closed;
 
         DataContext = viewModel;
@@ -138,6 +139,17 @@ public partial class MainWindow : BaseWindow
             viewModel.AircraftPosition = AircraftPosition.FromStruct(e.Position);
         });
     }
+
+    
+    private void Connector_AiAircraftPositionUpdated(object? sender, AiAircraftPositionUpdatedEventArgs e)
+    {
+        recorderLogic.NotifyAiPosition(e.dwObjectID, e.Position);
+
+        // replayLogic will be engaged upon replay after re-ordering aircraft / frames
+        //replayLogic.NotifyPosition(e.Position);
+
+    }
+
 
     private void Connector_Closed(object? sender, EventArgs e)
     {
@@ -291,7 +303,7 @@ public partial class MainWindow : BaseWindow
 
     protected override void Draw()
     {
-        drawingLogic.Draw(replayLogic.User_Records, () => viewModel.CurrentFrame, viewModel.State, (int)ImageWrapper.ActualWidth, (int)ImageWrapper.ActualHeight, ImageChart);
+        drawingLogic.Draw(replayLogic.UserAircraft.Records, () => viewModel.CurrentFrame, viewModel.State, (int)ImageWrapper.ActualWidth, (int)ImageWrapper.ActualHeight, ImageChart);
     }
 
     private void TextBlock_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -335,9 +347,9 @@ public partial class MainWindow : BaseWindow
         {
             try
             {
-                await exportLogic.ExportAsync(dialog.FileName, replayLogic.User_Records.Select(o =>
+                await exportLogic.ExportAsync(dialog.FileName, replayLogic.UserAircraft.Records.Select(o =>
                 {
-                        var result = AircraftPosition.FromStruct(o.position);
+                        var result = AircraftPosition.FromStruct((AircraftPositionStruct)o.position);
                         result.Milliseconds = o.milliseconds;
                         return result;
                 }));

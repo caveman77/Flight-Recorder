@@ -9,6 +9,7 @@ namespace FlightRecorder.Client.Generators
     {
         public const string SimState = "SimStateStruct";
         public const string AircraftPosition = "AircraftPositionStruct";
+        public const string AiAircraftPosition = "AiAircraftPositionStruct";
 
         protected const int SetTypeDefault = 0; // TODO: replace 0
         protected const int SetTypeEvent = 1;

@@ -48,7 +48,7 @@ public partial class AIWindow : BaseWindow
         }
 
         var loaded = true;
-        if (replayLogic.Records.Count == 0)
+        if (replayLogic.UserAircraft.Records.Count == 0)
         {
             loaded = await LoadAsync();
         }
@@ -135,6 +135,6 @@ public partial class AIWindow : BaseWindow
 
     protected override void Draw()
     {
-        drawingLogic.Draw(replayLogic.User_Records, () => viewModel.CurrentFrame, viewModel.State, (int)ImageWrapper.ActualWidth, (int)ImageWrapper.ActualHeight, ImageChart);
+        drawingLogic.Draw(replayLogic.UserAircraft.Records, () => viewModel.CurrentFrame, viewModel.State, (int)ImageWrapper.ActualWidth, (int)ImageWrapper.ActualHeight, ImageChart);
     }
 }

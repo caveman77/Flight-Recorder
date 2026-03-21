@@ -26,13 +26,14 @@ public class RecorderLogic : IRecorderLogic, IDisposable
     private long? endMilliseconds;
     private SimStateStruct startState;
     private List<(long milliseconds, uint dwObjectID, AircraftPositionStruct position)> records = new();
+    private List<(long milliseconds, uint dwObjectID, AiAircraftPositionStruct position)> airecords = new();
     private List<(long milliseconds, uint dwObjectID, SimStateStruct position)> sorrounding_records = new();
 
     // Match to the user aircraft
     private SimStateStruct simState;
 
     // User aircraft objectID
-    uint userAircraftObjectID;
+    uint? userAircraftObjectID = null;
 
     private bool IsStarted => startMilliseconds.HasValue && records != null;
     private bool IsEnded => startMilliseconds.HasValue && endMilliseconds.HasValue;
@@ -74,9 +75,12 @@ public class RecorderLogic : IRecorderLogic, IDisposable
         if (IsStarted && !IsEnded)
         {
             logger.LogDebug("RecorderLogic - aircraft: {AircraftNumber} {AircraftModel} {AircraftType} {AircraftTitle}", e.State.AircraftNumber, e.State.AircraftModel, e.State.AircraftType, e.State.AircraftTitle);
-            sorrounding_records.Add((stopwatch.ElapsedMilliseconds, e.dwObjectID, e.State));
+            if ((userAircraftObjectID != null) && (userAircraftObjectID != e.dwObjectID))
+            {
+                sorrounding_records.Add((stopwatch.ElapsedMilliseconds, e.dwObjectID, e.State));
 
-            AircraftUpdated?.Invoke(this, new(null, startState.AircraftTitle, sorrounding_records.Count));
+                AircraftUpdated?.Invoke(this, new(null, startState.AircraftTitle, sorrounding_records.Count));
+            }
         }
 
     }
@@ -86,6 +90,7 @@ public class RecorderLogic : IRecorderLogic, IDisposable
     public void Initialize()
     {
         logger.LogDebug("Initializing recorder...");
+        userAircraftObjectID = null;
 
         stopwatch.Start();
     }
@@ -116,25 +121,37 @@ public class RecorderLogic : IRecorderLogic, IDisposable
     {
         if (IsStarted && !IsEnded && value.HasValue)
         {
+            userAircraftObjectID = dwObjectID;
+
             records.Add((stopwatch.ElapsedMilliseconds, dwObjectID, value.Value));
 
             RecordsUpdated?.Invoke(this, new(null, startState.AircraftTitle, records.Count));
         }
     }
 
-    
+    public void NotifyAiPosition(uint dwObjectID, AiAircraftPositionStruct? value)
+    {
+
+        if (IsStarted && !IsEnded && value.HasValue && (userAircraftObjectID != null) && (dwObjectID != userAircraftObjectID))
+        {
+            airecords.Add((stopwatch.ElapsedMilliseconds, dwObjectID, value.Value));
+
+        }
+    }
+
+
     public async Task<SavedData>  ToData(string clientVersion)
     {
         if (startMilliseconds == null) throw new InvalidOperationException("Cannot get data before started recording!");
         if (endMilliseconds == null) throw new InvalidOperationException("Cannot get data before finished recording!");
 
         // Find unic aircrafts
-        List<AircraftWithObjectID> listAircraft = new List<AircraftWithObjectID>();
+        List<uint> listAircraft = new List<uint>();
         foreach (var sor in sorrounding_records)
         {
-            if (!listAircraft.Any(p => p.objectID == sor.dwObjectID))
+            if (!listAircraft.Any(p => p == sor.dwObjectID))
             {
-                listAircraft.Add(new AircraftWithObjectID { objectID = sor.dwObjectID, aircraftStatus = sor.position });
+                listAircraft.Add(sor.dwObjectID);
             }
         }
 
@@ -146,56 +163,73 @@ public class RecorderLogic : IRecorderLogic, IDisposable
         List<List<AircraftStatus>> minutes_reorganised = new List<List<AircraftStatus>>();
         List<(int startindex, int stopindex)> Index_range = new List<(int startindex, int stopindex)>();
 
+        UserAircraftForSave userAircraft = new UserAircraftForSave();
+        List<AiAircraftForSave> aiArcraftList = new List<AiAircraftForSave>();
 
-        foreach (var aircrafto in listAircraft)
+
+        //------------ User aircraft conversion
+        if (userAircraftObjectID != null)
         {
-            uint aircraft = aircrafto.objectID;
+            List<AircraftStatus> singleAircraftStatus = new List<AircraftStatus>();
             List<SavedRecord> singleAircraftRecord = new List<SavedRecord>();
+
+            if (listPositionUserAircraft.Count > 0)
+            {
+                for (int indexer = 0; indexer < listPositionUserAircraft.Count; indexer++)
+                {
+
+                    long Time = listPositionUserAircraft[indexer].milliseconds;
+                    AircraftPosition? Position = null;
+
+                    if (listPositionUserAircraft[indexer].position == null)
+                    {
+                        Position = null;
+                    }
+                    else
+                    {
+                        Position = AircraftPosition.FromStruct((AircraftPositionStruct)listPositionUserAircraft[indexer].position);
+                    }
+
+                    SavedRecord record2 = new SavedRecord(Time, Position);
+                    singleAircraftRecord.Add(record2);
+                }
+
+
+                SimState StartState = SimState.FromStruct(simState);
+
+                userAircraft = new UserAircraftForSave
+                {
+                    Records = singleAircraftRecord,
+                    EndTime = endMilliseconds.Value,
+                    StartTime = startMilliseconds.Value,
+                    UserArcraftID = (uint)userAircraftObjectID,
+                    SimState = StartState
+                };
+            }
+            else
+            {
+                logger.LogError("User aircraft found empty !");
+            }
+
+        }
+
+
+        foreach (var aircraft in listAircraft)
+        {
+            
             List<AircraftStatus> singleAircraftStatus = new List<AircraftStatus>();
             int newstartshift = -1;
             int newstopshift = - 1;
 
-            if (aircraft == userAircraftObjectID)
+
+            //------------ AI aircraft conversion
             {
-                newstartshift = 0;
-                newstopshift = listPositionUserAircraft.Count -1;
+                List<AiSavedRecord> singleAircraftRecord = new List<AiSavedRecord>();
+                AiAircraftForSave aiAiracraft = new AiAircraftForSave();
+                aiAiracraft.objectID = aircraft;
 
-                if ((listPositionUserAircraft.Count > 0) && (listStatusUserAircraft.Count > 0))
-                {
-                    for (int indexer = 0; indexer < listPositionUserAircraft.Count; indexer++)
-                    {
-                        
-                        long Time = listPositionUserAircraft[indexer].milliseconds;
-                        AircraftPosition? Position = null;
-
-                        if (listPositionUserAircraft[indexer].position == null)
-                        {
-                            Position = null;
-                        }
-                        else
-                        {
-                            Position = AircraftPosition.FromStruct((AircraftPositionStruct)listPositionUserAircraft[indexer].position);
-                        }
-
-                        SavedRecord record2 = new SavedRecord(Time, Position);
-                        singleAircraftRecord.Add(record2);
-                    }
-
-                    
-
-                    //singleAircraftRecord = listPositionUserAircraft.Any() ? listPositionUserAircraft : new List<AircraftRecord>();
-                    singleAircraftStatus = listStatusUserAircraft.Any() ? listStatusUserAircraft : new List<AircraftStatus>();
-
-                }
-                else
-                {
-                    logger.LogError("User aircraft found empty !");
-                }
-            }
-            else
-            {
                 // Manage frames
-                var listPositionAIAircraft = records.Where(x => x.dwObjectID == aircraft).Select(y => new AircraftRecord { milliseconds = y.milliseconds, position = y.position }).ToList();
+                var listPositionAIAircraft = airecords.Where(x => x.dwObjectID == aircraft).Select(y => new AiAircraftRecord { milliseconds = y.milliseconds, position = y.position }).ToList();
 
                 var firsthappearance = listPositionAIAircraft[0].milliseconds;
 
@@ -211,30 +245,31 @@ public class RecorderLogic : IRecorderLogic, IDisposable
                 double last_longitude = 0;
                 double last_latitude = 0;
 
-                for (int indexer=0; indexer< listPositionAIAircraft.Count;indexer++)
+                for (int indexer=0; ((indexer< listPositionAIAircraft.Count) && ((indexer + newstartshift )< listPositionUserAircraft.Count)) ; indexer++)
                 {
                     
                     long Time = listPositionUserAircraft[indexer + newstartshift].milliseconds;
-                    AircraftPosition? Position = null;
+                    AiAircraftPosition? Position = null;
 
                     //logger.LogError("tt {indexer} {startshift} {Count} {Count2}", indexer, startshift, listPositionAIAircraft.Count, singleAircraftRecord.Count);
                     //singleAircraftRecord[indexer].position = listPositionAIAircraft[indexer + startshift].position;
                     if ((indexer!=0) || (listPositionAIAircraft[indexer].position.Value.Latitude != last_latitude) || (listPositionAIAircraft[indexer].position.Value.Longitude != last_longitude))
-                        Position = AircraftPosition.FromStruct((AircraftPositionStruct)listPositionAIAircraft[indexer].position);
+                        Position = AiAircraftPosition.FromStruct((AiAircraftPositionStruct)listPositionAIAircraft[indexer].position);
                     else
                         Position = null;
 
-                        // To be done compare with previous value of AircraftPositionStruct and set to null
+                    // To be done compare with previous value of AircraftPositionStruct and set to null
 
-                    SavedRecord record2 = new SavedRecord(Time, Position);
+                    AiSavedRecord record2 = new AiSavedRecord(Time, Position);
                     singleAircraftRecord.Add(record2);
+
                 }
 
                 // Manage minute status
                 var listPositionAIStatus = sorrounding_records.Where(x => x.dwObjectID == aircraft).Select(y => new AircraftStatus { milliseconds = y.milliseconds, position = y.position }).ToList();
                 var matching_minute_not_null = new AircraftStatus();
 
-                foreach (var userStatus in listStatusUserAircraft)
+                foreach (var userStatus in listPositionAIStatus)
                 { 
                         var matching_status = new AircraftStatus();
                         try
@@ -257,22 +292,27 @@ public class RecorderLogic : IRecorderLogic, IDisposable
 
                 }
 
-                
+                if (singleAircraftStatus.Count > 0)
+                    aiAiracraft.AircraftStatus = singleAircraftStatus[0].position ==null ? null : SimState.FromStruct((SimStateStruct)singleAircraftStatus[0].position);
+
+                aiAiracraft.Records = singleAircraftRecord;
+                aiAiracraft.Minutes = singleAircraftStatus;
+
+                aiAiracraft.StartIndex = newstartshift;
+                aiAiracraft.StopIndex = newstopshift;
+
+                aiArcraftList.Add(aiAiracraft);
 
             }
-
-            Index_range.Add((newstartshift, newstopshift));
-
-            records_reorganised.Add(singleAircraftRecord);
-            minutes_reorganised.Add(singleAircraftStatus);
 
         }
 
         await Task.Yield();
 
-        SavedData outcome = new SavedData(clientVersion, startMilliseconds.Value, endMilliseconds.Value, startState, userAircraftObjectID, listAircraft, records_reorganised, minutes_reorganised, Index_range);
+        SavedData outcome = new SavedData(clientVersion, userAircraft, aiArcraftList);
         return outcome;
     }
-    
+
+
     #endregion
 }

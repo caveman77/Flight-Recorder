@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using FlightRecorder.Client.SimConnectMSFS;
 
 namespace FlightRecorder.Client.Logics
 {
@@ -12,6 +13,9 @@ namespace FlightRecorder.Client.Logics
         void Record();
         void StopRecording();
         void NotifyPosition(uint dwObjectID, AircraftPositionStruct? value);
+
+        void NotifyAiPosition(uint dwObjectID, AiAircraftPositionStruct? value);
+
 
         Task <SavedData> ToData(string clientVersion);
     }

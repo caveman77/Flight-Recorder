@@ -19,6 +19,8 @@
         AircraftPositionInitial,
         AircraftPosition,
         AircraftPositionSet,
+        AiAircraftPosition,
+        AiAircraftPositionSet
     }
 
     internal enum DATA_REQUESTS
