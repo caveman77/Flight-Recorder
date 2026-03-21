@@ -22,7 +22,7 @@ namespace FlightRecorder.Client.Generators
 
         public void Execute(GeneratorExecutionContext context)
         {
-            var fields = GetSimConnectFields(context, AircraftPosition).ToList();
+            var fields = GetSimConnectFields(context, AiAircraftPosition).ToList();
             AddSetStruct(context, fields);
             AddOperator(context, fields);
         }

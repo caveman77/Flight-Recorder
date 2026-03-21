@@ -157,7 +157,7 @@ public class RecorderLogic : IRecorderLogic, IDisposable
 
 
         var listPositionUserAircraft = records.Where(x => x.dwObjectID == userAircraftObjectID).Select(y => new AircraftRecord {  milliseconds = y.milliseconds, position = y.position }).ToList();
-        var listStatusUserAircraft = sorrounding_records.Where(x => x.dwObjectID == userAircraftObjectID).Select(y => new AircraftStatus { milliseconds = y.milliseconds, position = y.position }).ToList();
+        var listStatusUserAircraft = sorrounding_records.Where(x => x.dwObjectID == userAircraftObjectID).Select(y => new AircraftStatus ( y.milliseconds, y.position )).ToList();
 
         List<List<SavedRecord>> records_reorganised = new List<List<SavedRecord>>();
         List<List<AircraftStatus>> minutes_reorganised = new List<List<AircraftStatus>>();
@@ -266,7 +266,7 @@ public class RecorderLogic : IRecorderLogic, IDisposable
                 }
 
                 // Manage minute status
-                var listPositionAIStatus = sorrounding_records.Where(x => x.dwObjectID == aircraft).Select(y => new AircraftStatus { milliseconds = y.milliseconds, position = y.position }).ToList();
+                var listPositionAIStatus = sorrounding_records.Where(x => x.dwObjectID == aircraft).Select(y => new AircraftStatus ( y.milliseconds, y.position )).ToList();
                 var matching_minute_not_null = new AircraftStatus();
 
                 foreach (var userStatus in listPositionAIStatus)

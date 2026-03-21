@@ -23,8 +23,17 @@ public class AiAircraftRecord
 // Store the event send every minutes telling if any aircraft is here
 public class AircraftStatus
 {
-    public long milliseconds;
-    public SimStateStruct? position;
+    [JsonConstructor]
+    public AircraftStatus (long milliseconds, SimStateStruct? position)
+    {
+        this.milliseconds = milliseconds;
+        this.position = position;
+    }
+
+    public AircraftStatus () { }
+
+    public long milliseconds { get; set; }
+    public SimStateStruct? position { get; set; }
 
 }
 
@@ -135,24 +144,50 @@ public class SavedData
 
     public class UserAircraftForSave
     {
-        public uint UserArcraftID;
-        public SimState? SimState;
-        public List<SavedRecord>? Records;
-        public long StartTime;
-        public long EndTime;
+        [JsonConstructor]
+        public UserAircraftForSave(uint userArcraftID, SimState? simState, List<SavedRecord>? records, long startTime, long endTime)
+        {
+            UserArcraftID = userArcraftID;
+            SimState = simState;
+            Records = records;
+            StartTime = startTime;
+            EndTime = endTime;
+        }
+
+        public UserAircraftForSave() { }
+
+        public uint UserArcraftID { get; set; }
+        public SimState? SimState { get; set; }
+        public List<SavedRecord>? Records { get; set; }
+        public long StartTime { get; set; }
+        public long EndTime { get; set; }
     }
     public class AiAircraftForSave
     {
-        public uint objectID;
-        public SimState? AircraftStatus;
-        public List<AiSavedRecord>? Records;
-        public List<AircraftStatus>? Minutes;
-        public int StartIndex;
-        public int StopIndex;
+        [JsonConstructor]
+        public AiAircraftForSave(uint objectID, SimState? aircraftStatus, List<AiSavedRecord>? records, List<AircraftStatus>? minutes, int startIndex, int stopIndex)
+        {
+            this.objectID = objectID;
+            AircraftStatus = aircraftStatus;
+            Records = records;
+            Minutes = minutes;
+            StartIndex = startIndex;
+            StopIndex = stopIndex;
+        }
+
+        public AiAircraftForSave () { }
+
+        public uint objectID { get; set; }
+        public SimState? AircraftStatus { get; set; }
+        public List<AiSavedRecord>? Records { get; set; }
+        public List<AircraftStatus>? Minutes { get; set; }
+        public int StartIndex { get; set; }
+        public int StopIndex { get; set; }  
     }
 
     public class SavedRecord
     {
+        [JsonConstructor]
         public SavedRecord(long time, AircraftPosition? position)
         {
             Time = time;
@@ -165,6 +200,7 @@ public class SavedData
 
     public class AiSavedRecord
     {
+        [JsonConstructor]
         public AiSavedRecord(long time, AiAircraftPosition? position)
         {
             Time = time;

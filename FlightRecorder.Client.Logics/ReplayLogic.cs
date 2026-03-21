@@ -86,11 +86,6 @@ public class ReplayLogic : IReplayLogic, IDisposable
         AIBank = 28.999999999999993,
         AIPitch = -19.999999999999993,
         AbsoluteTime = 63909094529.924271,
-        AccelerationBodyX = 0,
-        AccelerationBodyY = 0,
-        AccelerationBodyZ = 0,
-        AileronPosition = 0,
-        AileronTrimPercent = 0,
         Altitude = 2091.9170057785809,
         AltitudeAboveGround = 9.6935990980027782,
         Bank = 0,
@@ -98,7 +93,6 @@ public class ReplayLogic : IReplayLogic, IDisposable
         BrakeRightPosition = 1,
         BrakeParkingPosition = 1,
         Longitude = -16.447037877832933,
-        MachAirspeed = 0,
         Latitude = 81.173171823478071
     };
 
