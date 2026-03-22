@@ -79,7 +79,8 @@ public class ReplayLogic : IReplayLogic, IDisposable
 
     //private bool IsAI([NotNullWhen(true)] string? aircraftTitle) => !string.IsNullOrEmpty(aircraftTitle);
 
-   
+    private bool playUserAircraft = false;
+    private bool playAiArcraft = false;
 
     private AiAircraftPositionStruct aidefaultPosition = new AiAircraftPositionStruct
     {
@@ -160,6 +161,12 @@ public class ReplayLogic : IReplayLogic, IDisposable
 
     #region Public Functions
 
+    public void SetReplayScope(bool playUserAircraft, bool playAiArcrafts)
+    {
+        this.playAiArcraft = playAiArcrafts;
+        this.playUserAircraft = playUserAircraft;
+    }
+
     public bool Replay()
     {
         if (!IsReplayable)
@@ -180,25 +187,34 @@ public class ReplayLogic : IReplayLogic, IDisposable
 
         if (UserAircraft.Records.Any())
         {
-            AircraftPositionStruct? currentPosition = UserAircraft.Records[currentFrame].position;
-            if (currentPosition == null)
-                currentPosition = (AircraftPositionStruct)defaultPosition;
 
-            connector.Init(0, (AircraftPositionStruct)currentPosition);
-
-
-            foreach (var aircraft in AiAircraftList)
+            if (this.playUserAircraft)
             {
-                AiAircraftPositionStruct? aicurrentPosition = new AiAircraftPositionStruct?();
+                AircraftPositionStruct? currentPosition = UserAircraft.Records[currentFrame].position;
 
-                if ((aircraft.StartIndex <= currentFrame) && (aircraft.StopIndex >= currentFrame))
-                    aicurrentPosition = aircraft.Records[currentFrame - aircraft.StartIndex].position;
+                if (currentPosition == null)
+                    currentPosition = (AircraftPositionStruct)defaultPosition;
 
-                // Would need to search for previous frames to see if the planed didn't moved
-                if (aicurrentPosition == null)
-                    aicurrentPosition = (AiAircraftPositionStruct)aidefaultPosition;
+                connector.Init(0, (AircraftPositionStruct)currentPosition);
+            }
+                
 
-                aircraft.aiRequestId = connector.Spawn(((SimStateStruct)aircraft.AircraftStatus).AircraftTitle, (AiAircraftPositionStruct)aicurrentPosition);
+            if (this.playAiArcraft)
+            {
+                foreach (var aircraft in AiAircraftList)
+                {
+                    AiAircraftPositionStruct? aicurrentPosition = new AiAircraftPositionStruct?();
+
+                    if ((aircraft.StartIndex <= currentFrame) && (aircraft.StopIndex >= currentFrame))
+                        aicurrentPosition = aircraft.Records[currentFrame - aircraft.StartIndex].position;
+
+                    // Would need to search for previous frames to see if the planed didn't moved
+                    if (aicurrentPosition == null)
+                        aicurrentPosition = (AiAircraftPositionStruct)aidefaultPosition;
+
+                    aircraft.aiRequestId = connector.Spawn(((SimStateStruct)aircraft.AircraftStatus).AircraftTitle, (AiAircraftPositionStruct)aicurrentPosition);
+                }
+
             }
         }
 
@@ -259,12 +275,18 @@ public class ReplayLogic : IReplayLogic, IDisposable
             {
                 // Ignore to prevent init unnecessarily
             }
-            else if (frame >= 0 && frame < UserAircraft.Records.Count)
+            else if (this.playAiArcraft && frame >= 0 && frame < UserAircraft.Records.Count)
             {
-                foreach (var ai in AiAircraftList)
+                if (this.playUserAircraft)
+                    connector.Init(0, defaultPosition);
+
+                if (this.playAiArcraft)
                 {
-                    //var cur_pos = Records[i][frame].position;
-                    connector.Init(ai.aiId ?? 0, defaultPosition);
+                    foreach (var ai in AiAircraftList)
+                    {
+                        //var cur_pos = Records[i][frame].position;
+                        connector.Init(ai.aiId ?? 0, aidefaultPosition);
+                    }
                 }
             }
             else
@@ -306,16 +328,22 @@ public class ReplayLogic : IReplayLogic, IDisposable
 
             if (IsPausing)
             {
-                MoveAircraft(UserAircraft.UserArcraftID, UserAircraft.Records[value].milliseconds, UserAircraft.Records[value].position, null, null, 0);
+                if (this.playUserAircraft)
+                    MoveAircraft(UserAircraft.UserArcraftID, UserAircraft.Records[value].milliseconds, UserAircraft.Records[value].position, null, null, 0);
 
-                foreach (var aircraft in AiAircraftList)
+                if (this.playAiArcraft)
                 {
-                    if (aircraft.aiId !=null)
+                    foreach (var avion in AiAircraftList)
                     {
-                        MoveAiAircraft((uint)aircraft.aiId, aircraft.Records[value].milliseconds, aircraft.Records[value].position, null, null, 0);
-                    }
+                        if (avion.aiId != null)
+                        {
+                            if ((avion.StartIndex <= value) && (avion.StopIndex >= value))
+                                MoveAiAircraft((uint)avion.aiId, avion.Records[value - avion.StartIndex].milliseconds, avion.Records[value - avion.StartIndex].position, null, null, 0);
+                        }
 
+                    }
                 }
+
             }
             else if (!IsReplaying)
             {
@@ -378,16 +406,19 @@ public class ReplayLogic : IReplayLogic, IDisposable
     {
         if (replayMilliseconds != null)
         {
-            connector.Unfreeze(0);
+            if (this.playUserAircraft)
+                connector.Unfreeze(0);
 
-            foreach (var plane in AiAircraftList)
+            if (this.playAiArcraft)
             {
+                foreach (var plane in AiAircraftList)
+                {
                     if (plane.aiId != null)
                     {
-                        connector.Unfreeze((uint) plane.aiId);
+                        connector.Unfreeze((uint)plane.aiId);
                     }
+                }
             }
-
         }
     }
 
@@ -512,8 +543,8 @@ public class ReplayLogic : IReplayLogic, IDisposable
         //timer = new Timer();
         //timer.Elapsed += Timer_Elapsed;
         //timer.Start();
-
-        connector.Freeze(0);
+        if (this.playUserAircraft)
+            connector.Freeze(0);
 
 
         var enumerator = UserAircraft.Records.GetEnumerator();
@@ -617,27 +648,29 @@ public class ReplayLogic : IReplayLogic, IDisposable
             if (recordedElapsed.HasValue)
             {
                 logger.LogTrace("RunReplay - moving aircrafts {currentFrame} ", currentFrame);
-                MoveAircraft((uint)UserAircraft.UserArcraftID, recordedElapsed.Value, UserAircraft.Records[currentFrame].position, null, null, 0);
+                if (this.playUserAircraft)
+                    MoveAircraft((uint)UserAircraft.UserArcraftID, recordedElapsed.Value, UserAircraft.Records[currentFrame].position, null, null, 0);
                 
-                int i = 0;
-                foreach (var avion in AiAircraftList)
+                if (this.playAiArcraft)
                 {
-                    if (avion != null)
+                    int i = 0;
+                    foreach (var avion in AiAircraftList)
                     {
-                        if ((avion.StartIndex <= currentFrame) && (avion.StopIndex >= currentFrame))
+                        if (avion != null)
+                        {
+                            if ((avion.StartIndex <= currentFrame) && (avion.StopIndex >= currentFrame))
                                 MoveAiAircraft((uint)avion.aiId, recordedElapsed.Value, avion.Records[currentFrame - avion.StartIndex].position, null, null, 0);
 
-                        if (avion.StopIndex +1 == currentFrame)
-                        {
-                            // would need to despawn aircraft when last index
-                            MoveAiAircraft((uint)avion.aiId, recordedElapsed.Value, aidefaultPosition, null, null, 0);
+                            if (avion.StopIndex + 1 == currentFrame)
+                            {
+                                // would need to despawn aircraft when last index
+                                MoveAiAircraft((uint)avion.aiId, recordedElapsed.Value, aidefaultPosition, null, null, 0);
+                            }
                         }
+
+                        ++i;
                     }
-
-                    ++i;
                 }
-                
-
             }
 
             logger.LogTrace("RunReplay - after moving aircrafts {currentFrame} ", currentFrame);
@@ -651,14 +684,18 @@ public class ReplayLogic : IReplayLogic, IDisposable
         isReplayStopping = false;
         Unfreeze();
         
-        foreach (var avion in AiAircraftList)
+        if (this.playAiArcraft)
         {
+            foreach (var avion in AiAircraftList)
+            {
                 if (avion.aiId != null)
                 {
                     connector.Despawn((uint)avion.aiId);
                     avion.aiId = null;
                 }
+            }
         }
+
 
 
         Reset();

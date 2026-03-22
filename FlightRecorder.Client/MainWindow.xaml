@@ -163,6 +163,8 @@
                         <Button.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Replay as AI" Click="ButtonReplayAI_Click" />
+                                <MenuItem Header="Replay only User Aircraft" Click="ButtonReplayOnlyUserAircraftOnly_Click" />
+                                <MenuItem Header="Replay only AI Aircrafts" Click="ButtonReplayOnlyAiAircraftOnly_Click" />
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>

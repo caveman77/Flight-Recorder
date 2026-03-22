@@ -56,8 +56,22 @@ public abstract class BaseWindow : Window
 
     protected async void ButtonReplay_Click(object sender, RoutedEventArgs e)
     {
+        replayLogic.SetReplayScope(true, true);
         await stateMachine.TransitAsync(StateMachine.Event.Replay);
     }
+
+    protected async void ButtonReplayOnlyUserAircraftOnly_Click(object sender, RoutedEventArgs e)
+    {
+        replayLogic.SetReplayScope(true, false);
+        await stateMachine.TransitAsync(StateMachine.Event.Replay);
+    }
+
+    protected async void ButtonReplayOnlyAiAircraftOnly_Click(object sender, RoutedEventArgs e)
+    {
+        replayLogic.SetReplayScope(false, true);
+        await stateMachine.TransitAsync(StateMachine.Event.Replay);
+    }
+
 
     protected async void ButtonPauseReplay_Click(object sender, RoutedEventArgs e)
     {

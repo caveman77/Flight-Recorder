@@ -17,7 +17,8 @@ public interface IReplayLogic
     */
     bool IsReplayable { get; }
 
-    bool Replay();
+    public void SetReplayScope(bool playUserAircraft, bool playAiArcrafts);
+    public bool Replay();
     bool PauseReplay();
     bool ResumeReplay();
     void Seek(int value);
