@@ -9,7 +9,7 @@ namespace FlightRecorder.Client.Generators
     [Generator]
     public class AiConnectorGenerator : BaseGenerator, ISourceGenerator
     {
-        private const int InitialEventID = 1000;
+        private const int InitialEventID = 2000;
 
         public void Initialize(GeneratorInitializationContext context)
         {

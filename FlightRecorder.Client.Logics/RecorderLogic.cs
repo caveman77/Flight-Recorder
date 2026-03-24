@@ -254,7 +254,7 @@ public class RecorderLogic : IRecorderLogic, IDisposable
                     //logger.LogError("tt {indexer} {startshift} {Count} {Count2}", indexer, startshift, listPositionAIAircraft.Count, singleAircraftRecord.Count);
                     //singleAircraftRecord[indexer].position = listPositionAIAircraft[indexer + startshift].position;
                     if ((indexer!=0) || (listPositionAIAircraft[indexer].position.Value.Latitude != last_latitude) || (listPositionAIAircraft[indexer].position.Value.Longitude != last_longitude))
-                        Position = AiAircraftPosition.FromStruct((AiAircraftPositionStruct)listPositionAIAircraft[indexer].position);
+                        Position = AiAircraftPosition.FromStruct(manageLights((AiAircraftPositionStruct)listPositionAIAircraft[indexer].position));
                     else
                         Position = null;
 
@@ -313,6 +313,67 @@ public class RecorderLogic : IRecorderLogic, IDisposable
         return outcome;
     }
 
+    private AiAircraftPositionStruct manageLights(AiAircraftPositionStruct position)
+    {
+        AiAircraftPositionStruct result = position;
 
+        result.LightLogo = 1;
+
+        if ((position.GroundSpeed > 1) || (position.GeneralEngineCombustion1 == 1))
+            result.LightBeacon = 1;
+        else
+            result.LightBeacon = 0;
+
+        // Landing or TO
+        if (position.IsOnRunway == 1)
+        {
+            result.LightLanding = 1;
+            result.LightStrobe = 1;
+            result.LightLogo = 1;
+            result.LightTaxi = 0;
+            result.LightNav = 1;
+
+            return result;
+        }
+        
+        // TAXI
+        if ((position.IsOnGround == 1) && (position.GeneralEngineCombustion1 == 1))
+        {
+            result.LightLanding = 0;
+            result.LightStrobe = 0;
+            result.LightLogo = 1;
+            result.LightTaxi = 1;
+            result.LightNav = 1;
+
+            return result;
+        }
+
+        // At Stand 
+        if ((position.IsOnGround == 1) && (position.GeneralEngineCombustion1 == 0))
+        {
+            result.LightLanding = 0;
+            result.LightStrobe = 0;
+            result.LightLogo = 1;
+            result.LightTaxi = 0;
+            result.LightNav = 0;
+
+            return result;
+        }
+
+        // In air
+        result.LightLanding = 0;
+        result.LightStrobe = 1;
+        result.LightLogo = 1;
+        result.LightTaxi = 0;
+        result.LightNav = 1;
+
+        if ( position.AltitudeAboveGround < 10000)
+        {
+            result.LightLanding = 1;
+        }
+
+        return result;
+
+    }
     #endregion
 }

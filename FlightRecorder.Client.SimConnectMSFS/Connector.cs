@@ -88,6 +88,7 @@ public partial class Connector : IConnector
         simconnect.MapClientEventToSimEvent(EVENTS.FREEZE_ALTITUDE, "FREEZE_ALTITUDE_SET");
         simconnect.MapClientEventToSimEvent(EVENTS.FREEZE_ATTITUDE, "FREEZE_ATTITUDE_SET");
         RegisterEvents();
+        RegisterAiEvents();
 
         IsInitialized = true;
         Initialized?.Invoke(this, new());
@@ -239,7 +240,7 @@ public partial class Connector : IConnector
             SIMCONNECT_PERIOD.SECOND,
             SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT,
             0, 0, 0);
-        /* would provide twice the user aircraft */
+        
         simconnect?.RequestDataOnSimObject(
             DATA_REQUESTS.AIRCRAFT_POSITION, DEFINITIONS.AircraftPosition, 0,
             SIMCONNECT_PERIOD.SIM_FRAME,
