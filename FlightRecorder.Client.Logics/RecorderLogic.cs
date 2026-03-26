@@ -344,7 +344,6 @@ public class RecorderLogic : IRecorderLogic, IDisposable
             result.LightStrobe = 0;
             result.LightLogo = 1;
             result.LightTaxi = 1;
-            result.LightNav = 1;
 
             return result;
         }
@@ -356,7 +355,6 @@ public class RecorderLogic : IRecorderLogic, IDisposable
             result.LightStrobe = 0;
             result.LightLogo = 1;
             result.LightTaxi = 0;
-            result.LightNav = 0;
 
             return result;
         }
@@ -366,7 +364,6 @@ public class RecorderLogic : IRecorderLogic, IDisposable
         result.LightStrobe = 1;
         result.LightLogo = 1;
         result.LightTaxi = 0;
-        result.LightNav = 1;
 
         if ( position.AltitudeAboveGround < 10000)
         {
