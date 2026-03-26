@@ -318,6 +318,7 @@ public class RecorderLogic : IRecorderLogic, IDisposable
         AiAircraftPositionStruct result = position;
 
         result.LightLogo = 1;
+        result.LightNav = 1;
 
         if ((position.GroundSpeed > 1) || (position.GeneralEngineCombustion1 == 1))
             result.LightBeacon = 1;
@@ -331,7 +332,7 @@ public class RecorderLogic : IRecorderLogic, IDisposable
             result.LightStrobe = 1;
             result.LightLogo = 1;
             result.LightTaxi = 0;
-            result.LightNav = 1;
+            
 
             return result;
         }
