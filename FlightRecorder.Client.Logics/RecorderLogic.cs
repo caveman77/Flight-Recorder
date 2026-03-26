@@ -134,10 +134,10 @@ public class RecorderLogic : IRecorderLogic, IDisposable
 
         if (IsStarted && !IsEnded && value.HasValue && (userAircraftObjectID != null) && (dwObjectID != userAircraftObjectID))
         {
-            airecords.Add((stopwatch.ElapsedMilliseconds, dwObjectID, value.Value));
+                airecords.Add((stopwatch.ElapsedMilliseconds, dwObjectID, value.Value));
 
+            }
         }
-    }
 
 
     public async Task<SavedData>  ToData(string clientVersion)
